@@ -1,0 +1,257 @@
+%skeleton "lalr1.cc"
+%require "3.2"
+
+%defines
+%define api.parser.class {CarlosParser}
+
+%define api.token.constructor
+%define api.value.type variant
+%define parse.assert
+%define parse.error verbose
+
+%parse-param {CarlosLexer &lexer}
+%output "carlos.parser.cpp"
+%header "carlos.parser.h"
+
+%locations
+%define api.namespace {carlos}
+%define api.location.type {Location}
+
+%code requires {
+  #include <string>
+  #include <memory>
+  #include <vector>
+  #include "ast.h"
+  #include "location.h"
+  namespace carlos {
+    class CarlosLexer;
+  }
+}
+
+%code top {
+  #include "carlos.lex.h"
+}
+
+%code {
+  #define yylex lexer.lex
+}
+
+
+%token CA_ENTRY 1024 CA_LET CA_MUT CA_FN CA_RETURN CA_IF CA_ELSE CA_WHILE CA_FOR CA_BREAK CA_CONTINUE CA_AS CA_RETURN_TYPE CA_IN CA_CONST
+%token CA_TRUE CA_FALSE CA_BOOL CA_INT32 CA_FLOAT32 CA_CHAR
+%token CA_PLUS CA_MINUS CA_MUL CA_DIV CA_MOD CA_AND CA_OR CA_NOT CA_EQ CA_NEQ CA_LT CA_GT CA_LTE CA_GTE CA_ASSIGN CA_COMMA CA_SEMICOLON CA_LPAREN CA_RPAREN CA_LBRACE CA_RBRACE CA_COLON
+%token CA_PLUS_ASSIGN CA_MINUS_ASSIGN CA_MUL_ASSIGN CA_DIV_ASSIGN CA_MOD_ASSIGN
+%token CA_BITWISE_AND CA_BITWISE_OR CA_BITWISE_XOR CA_BITWISE_NOT CA_BITWISE_LSHIFT CA_BITWISE_RSHIFT
+%token CA_LBRACKET CA_RBRACKET CA_RANGE CA_RANGE_INCLUSIVE CA_DOT
+%token <int> CA_INT_CONST
+%token <float> CA_FLOAT_CONST
+%token <char> CA_CHAR_CONST
+%token <std::string> CA_IDENTIFIER
+
+%right CA_ASSIGN CA_PLUS_ASSIGN CA_MINUS_ASSIGN CA_MUL_ASSIGN CA_DIV_ASSIGN CA_MOD_ASSIGN
+%left CA_RANGE CA_RANGE_INCLUSIVE
+%left CA_OR
+%left CA_AND
+%left CA_EQ CA_NEQ
+%left CA_LT CA_LTE CA_GT CA_GTE
+%left CA_PLUS CA_MINUS
+%left CA_MUL CA_DIV CA_MOD
+%right CA_AS
+%right CA_NOT CA_NEG CA_POS
+
+%type <std::shared_ptr<EntryNode>> entry
+%type <std::shared_ptr<TypeNode>> type
+%type <std::shared_ptr<ArrayTypeNode>> array_type
+%type <std::shared_ptr<ExpressionNode>> expression
+%type <std::shared_ptr<ConstantExpressionNode>> constant
+%type <std::shared_ptr<ArrayExpressionNode>> array_expression
+%type <std::shared_ptr<ArrayAccessExpressionNode>> array_access
+%type <std::vector<std::shared_ptr<ExpressionNode>>> array_indices
+%type <std::vector<std::shared_ptr<ExpressionNode>>> array_element
+%type <std::shared_ptr<StatementNode>> statement
+%type <std::shared_ptr<StatementsNode>> statements statement_compound
+%type <std::shared_ptr<DeclarationStatementNode>> declaration
+%type <std::shared_ptr<IfStatementNode>> if else
+%type <std::shared_ptr<WhileStatementNode>> while
+%type <std::shared_ptr<ForStatementNode>> for
+%type <std::shared_ptr<ControlStatementNode>> break continue
+%type <std::shared_ptr<ReturnStatementNode>> return
+%%
+  program: entry {
+                root = std::make_shared<ProgramNode>(std::move($1));
+            }
+            ;
+  entry: CA_ENTRY statement_compound {
+                $$ = std::make_shared<EntryNode>(std::move($2));
+            }
+            ;
+
+  statement_compound: CA_LBRACE statements CA_RBRACE { $$ = std::move($2); }
+            ;
+
+  statements: statements statement {
+               auto temp = std::move($1);
+               temp->statements.push_back(std::move($2));
+               $$ = std::move(temp);
+            }
+            | statements statement_compound {
+               auto temp = std::move($1);
+               temp->statements.push_back(std::move($2));
+               $$ = std::move(temp);
+            }
+            | /* empty */ { if (!$$) $$ = std::make_shared<StatementsNode>(); }
+            ;
+
+  semicolon: semicolon CA_SEMICOLON
+            | CA_SEMICOLON
+            ;
+
+  opt_semicolon: semicolon
+            | /* empty */
+            ;
+
+  statement: declaration semicolon { $$ = std::move($1); }
+            | expression semicolon { $$ = std::make_shared<ExpressionStatementNode>(std::move($1)); }
+            | if opt_semicolon { $$ = std::move($1); }
+            | while opt_semicolon { $$ = std::move($1); }
+            | for opt_semicolon { $$ = std::move($1); }
+            | break semicolon { $$ = std::move($1); }
+            | continue semicolon { $$ = std::move($1); }
+            | return semicolon { $$ = std::move($1); }
+            ;
+
+  type: CA_BOOL { $$ = std::make_shared<BasicTypeNode>("bool"); }
+            | CA_INT32 { $$ = std::make_shared<BasicTypeNode>("i32"); }
+            | CA_FLOAT32 { $$ = std::make_shared<BasicTypeNode>("f32"); }
+            | CA_CHAR { $$ = std::make_shared<BasicTypeNode>("char"); }
+            | array_type { $$ = std::move($1); }
+            ;
+
+  constant: CA_INT_CONST { $$ = std::make_shared<ConstantExpressionNode>($1); }
+            | CA_FLOAT_CONST { $$ = std::make_shared<ConstantExpressionNode>($1); }
+            | CA_CHAR_CONST { $$ = std::make_shared<ConstantExpressionNode>($1); }
+            | CA_TRUE { $$ = std::make_shared<ConstantExpressionNode>(true); }
+            | CA_FALSE { $$ = std::make_shared<ConstantExpressionNode>(false); }
+            ;
+  array_type: CA_LBRACKET type CA_SEMICOLON expression CA_RBRACKET {
+                $$ = std::make_shared<ArrayTypeNode>(std::move($2), std::move($4));
+            }
+            ;
+
+  array_element: array_element CA_COMMA expression { auto temp = std::move($1); temp.push_back(std::move($3)); $$ = std::move(temp); }
+            | expression { $$.push_back(std::move($1)); }
+            ;
+
+  array_expression: CA_LBRACKET expression CA_SEMICOLON expression CA_RBRACKET {
+                $$ = std::make_shared<ArrayExpressionNode>(std::move($2), std::move($4));
+            }
+            | CA_LBRACKET array_element CA_RBRACKET {
+                $$ = std::make_shared<ArrayExpressionNode>(std::move($2));
+            }
+            ;
+
+  array_indices: array_indices CA_LBRACKET expression CA_RBRACKET { auto temp = std::move($1); temp.push_back(std::move($3)); $$ = std::move(temp); }
+            | CA_LBRACKET expression CA_RBRACKET { $$.push_back(std::move($2)); }
+            ;
+
+  array_access: CA_IDENTIFIER array_indices {
+                auto identifier = std::make_shared<IdentifierExpressionNode>($1);
+                $$ = std::make_shared<ArrayAccessExpressionNode>(std::move(identifier), std::move($2));
+            }
+            ;
+
+  declaration: CA_LET CA_IDENTIFIER CA_COLON type {
+                auto identifier = std::make_shared<IdentifierExpressionNode>($2);
+                $$ = std::make_shared<DeclarationStatementNode>(std::move(identifier), std::move($4), false, nullptr);
+            }
+            | CA_LET CA_MUT CA_IDENTIFIER CA_COLON type {
+                auto identifier = std::make_shared<IdentifierExpressionNode>($3);
+                $$ = std::make_shared<DeclarationStatementNode>(std::move(identifier), std::move($5), true, nullptr);
+            }
+            | CA_LET CA_IDENTIFIER CA_COLON type CA_ASSIGN expression {
+                auto identifier = std::make_shared<IdentifierExpressionNode>($2);
+                $$ = std::make_shared<DeclarationStatementNode>(std::move(identifier), std::move($4), false, std::move($6));
+            }
+            | CA_LET CA_MUT CA_IDENTIFIER CA_COLON type CA_ASSIGN expression {
+                auto identifier = std::make_shared<IdentifierExpressionNode>($3);
+                $$ = std::make_shared<DeclarationStatementNode>(std::move(identifier), std::move($5), true, std::move($7));
+            }
+            | CA_LET CA_IDENTIFIER CA_ASSIGN expression {
+                auto identifier = std::make_shared<IdentifierExpressionNode>($2);
+                $$ = std::make_shared<DeclarationStatementNode>(std::move(identifier), nullptr, false, std::move($4));
+            }
+            | CA_LET CA_MUT CA_IDENTIFIER CA_ASSIGN expression {
+                auto identifier = std::make_shared<IdentifierExpressionNode>($3);
+                $$ = std::make_shared<DeclarationStatementNode>(std::move(identifier), nullptr, true, std::move($5));
+            }
+            ;
+
+  expression: constant { $$ = std::move($1); }
+            | CA_IDENTIFIER { $$ = std::make_shared<IdentifierExpressionNode>($1); }
+            | array_expression { $$ = std::move($1); }
+            | array_access { $$ = std::move($1); }
+            | expression CA_PLUS expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "+", std::move($3)); }
+            | expression CA_MINUS expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "-", std::move($3)); }
+            | expression CA_MUL expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "*", std::move($3)); }
+            | expression CA_DIV expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "/", std::move($3)); }
+            | expression CA_MOD expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "%", std::move($3)); }
+            | expression CA_AND expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "&&", std::move($3)); }
+            | expression CA_OR expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "||", std::move($3)); }
+            | expression CA_EQ expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "==", std::move($3)); }
+            | expression CA_NEQ expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "!=", std::move($3)); }
+            | expression CA_LT expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "<", std::move($3)); }
+            | expression CA_GT expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), ">", std::move($3)); }
+            | expression CA_LTE expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "<=", std::move($3)); }
+            | expression CA_GTE expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), ">=", std::move($3)); }
+            | expression CA_RANGE expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "..", std::move($3)); }
+            | expression CA_RANGE_INCLUSIVE expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "..=", std::move($3)); }
+            | expression CA_ASSIGN expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "=", std::move($3)); }
+            | expression CA_PLUS_ASSIGN expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "+=", std::move($3)); }
+            | expression CA_MINUS_ASSIGN expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "-=", std::move($3)); }
+            | expression CA_MUL_ASSIGN expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "*=", std::move($3)); }
+            | expression CA_DIV_ASSIGN expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "/=", std::move($3)); }
+            | expression CA_MOD_ASSIGN expression { $$ = std::make_shared<BinaryExpressionNode>(std::move($1), "%=", std::move($3)); }
+            | expression CA_AS type { $$ = std::make_shared<CastExpressionNode>(std::move($1), std::move($3)); }
+            | CA_LPAREN expression CA_RPAREN { $$ = std::move($2); }
+            | CA_NOT expression { $$ = std::make_shared<UnaryExpressionNode>("!", std::move($2)); }
+            | CA_MINUS expression %prec CA_NEG { $$ = std::make_shared<UnaryExpressionNode>("-", std::move($2)); }
+            | CA_PLUS expression %prec CA_POS { $$ = std::make_shared<UnaryExpressionNode>("+", std::move($2)); }
+            ;
+
+  if: CA_IF expression statement_compound else {
+                $$ = std::make_shared<IfStatementNode>(std::move($2), std::move($3), std::move($4));
+            }
+            ;
+
+  else: CA_ELSE if { $$ = std::move($2); }
+            | CA_ELSE statement_compound {
+                $$ = std::make_shared<IfStatementNode>(nullptr, std::move($2), nullptr);
+            }
+            | /* empty */ { $$ = nullptr; }
+            ;
+
+  while: CA_WHILE expression statement_compound {
+                $$ = std::make_shared<WhileStatementNode>(std::move($2), std::move($3));
+            }
+            ;
+
+  for: CA_FOR CA_IDENTIFIER CA_IN expression statement_compound {
+                auto identifier = std::make_shared<IdentifierExpressionNode>($2);
+                $$ = std::make_shared<ForStatementNode>(std::move(identifier), std::move($4), std::move($5));
+            }
+            ;
+
+  break: CA_BREAK { $$ = std::make_shared<ControlStatementNode>("break"); }
+            ;
+
+  continue: CA_CONTINUE { $$ = std::make_shared<ControlStatementNode>("continue"); }
+            ;
+
+  return: CA_RETURN expression { $$ = std::make_shared<ReturnStatementNode>(std::move($2)); }
+            | CA_RETURN { $$ = std::make_shared<ReturnStatementNode>(nullptr); }
+            ;
+%%
+
+void carlos::CarlosParser::error(const Location &loc, const std::string &msg) {
+  std::cerr << "Error at " << loc << ": " << msg << std::endl;
+}
