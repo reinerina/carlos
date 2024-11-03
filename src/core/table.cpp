@@ -103,9 +103,19 @@ void SymbolTable::process_statement(
     }
     if (const auto range =
             std::dynamic_pointer_cast<RangeTypeNode>(iterator_type)) {
-      // TODO: Check start and end value
-      add_symbol_to_next_scope(iterator_name, SymbolType::INT,
+      const auto start = eval_value(range->start);
+      const auto end = eval_value(range->end);
+      CHECK_EQ(std::holds_alternative<int>(start), true)
+          << "Start value is not an integer";
+      CHECK_EQ(std::holds_alternative<int>(end), true)
+          << "End value is not an integer";
+      const auto start_value = std::get<int>(start);
+      const auto end_value = std::get<int>(end);
+      CHECK_GT(end_value, start_value) << "End value is less than start value";
+
+      add_symbol_to_next_scope(iterator_name, {start_value},
                                SymbolKind::VARIABLE, for_stat->mutability);
+
       in_control_flow = true;
       process_statement(for_stat->body);
       in_control_flow = false;
@@ -147,40 +157,45 @@ void SymbolTable::process_statement(
 void SymbolTable::process_declaration(
     const std::shared_ptr<DeclarationStatementNode> &declaration) const {
   const auto name = declaration->identifier->name;
-  auto type = declaration->type;
+  const auto type = declaration->type;
   constexpr auto kind = SymbolKind::VARIABLE;
   const auto mutability = declaration->mutability;
   const auto expression = declaration->expression;
-  if (type == nullptr) {
-    type = infer_type(expression);
-  } else {
-    const auto inferred_type = infer_type(expression);
-  }
-  if (const auto array_type = std::dynamic_pointer_cast<ArrayTypeNode>(type)) {
-    add_symbol(name, array_type, kind, mutability);
-  } else if (const auto basic_type =
-                 std::dynamic_pointer_cast<BasicTypeNode>(type)) {
-    auto symbol_type = SymbolType::UNKNOWN;
-    if (basic_type->type == "i32") {
-      symbol_type = SymbolType::INT;
-    } else if (basic_type->type == "f32") {
-      symbol_type = SymbolType::FLOAT;
-    } else if (basic_type->type == "char") {
-      symbol_type = SymbolType::CHAR;
-    } else if (basic_type->type == "bool") {
-      symbol_type = SymbolType::BOOL;
-    } else {
-      LOG(FATAL) << "Unknown basic type";
+  const auto inferred_type = infer_type(expression);
+  if (type != nullptr) {
+    if (const auto basic_type =
+            std::dynamic_pointer_cast<BasicTypeNode>(type)) {
+      if (const auto basic_inferred_type =
+              std::dynamic_pointer_cast<BasicTypeNode>(inferred_type)) {
+        if (basic_type->type != basic_inferred_type->type) {
+          LOG(FATAL) << "Declaration type mismatch";
+        }
+      } else {
+        LOG(FATAL) << "Declaration type mismatch";
+      }
     }
-    add_symbol(name, symbol_type, kind, mutability);
+    if (const auto array_type =
+            std::dynamic_pointer_cast<ArrayTypeNode>(type)) {
+      if (const auto array_inferred_type =
+              std::dynamic_pointer_cast<ArrayTypeNode>(inferred_type)) {
+        if (!check_array_type(array_type, array_inferred_type)) {
+          LOG(FATAL) << "Declaration type mismatch";
+        }
+      } else {
+        LOG(FATAL) << "Declaration type mismatch";
+      }
+    }
   } else {
-    LOG(FATAL) << "Unknown type";
+    declaration->type = inferred_type;
   }
+  const auto value = eval_value(expression);
+  add_symbol(name, value, kind, mutability);
 }
 
 void SymbolTable::process_expression(
     const std::shared_ptr<ExpressionNode> &expression) const {
-  const auto type = infer_type(expression);
+  if (const auto type = infer_type(expression); type != nullptr) {
+  }
 }
 
 std::shared_ptr<TypeNode> SymbolTable::infer_type(
@@ -209,24 +224,31 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
   if (const auto identifier =
           std::dynamic_pointer_cast<IdentifierExpressionNode>(node)) {
     if (const auto symbol = get_symbol(identifier->name)) {
-      if (symbol->dimensions.empty()) {
-        const auto symbol_type = symbol->type;
-        if (symbol_type == SymbolType::INT) {
-          return std::make_shared<BasicTypeNode>("i32");
-        }
-        if (symbol_type == SymbolType::FLOAT) {
-          return std::make_shared<BasicTypeNode>("f32");
-        }
-        if (symbol_type == SymbolType::CHAR) {
-          return std::make_shared<BasicTypeNode>("char");
-        }
-        if (symbol_type == SymbolType::BOOL) {
-          return std::make_shared<BasicTypeNode>("bool");
-        }
-        LOG(FATAL) << "Unknown symbol type";
-      } else {
-        // TODO: Auto infer array type
+      const auto &value = symbol->value;
+      if (std::holds_alternative<int>(value)) {
+        return std::make_shared<BasicTypeNode>("i32");
       }
+      if (std::holds_alternative<float>(value)) {
+        return std::make_shared<BasicTypeNode>("f32");
+      }
+      if (std::holds_alternative<char>(value)) {
+        return std::make_shared<BasicTypeNode>("char");
+      }
+      if (std::holds_alternative<bool>(value)) {
+        return std::make_shared<BasicTypeNode>("bool");
+      }
+      if (std::holds_alternative<Range>(value)) {
+        const auto range = std::get<Range>(value);
+        return std::make_shared<RangeTypeNode>(
+            std::make_shared<ConstantExpressionNode>(range.start),
+            std::make_shared<ConstantExpressionNode>(range.end),
+            range.inclusive);
+      }
+      if (std::holds_alternative<std::shared_ptr<Array>>(value)) {
+        const auto array = std::get<std::shared_ptr<Array>>(value);
+        return std::make_shared<ArrayTypeNode>(array);
+      }
+      LOG(FATAL) << "Unknown symbol type";
     }
     return nullptr;
   }
@@ -288,7 +310,7 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
           }
         }
         if (l_basic->type == "f32" && r_basic->type == "f32") {
-          if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
+          if (op == "+" || op == "-" || op == "*" || op == "/") {
             return std::make_shared<BasicTypeNode>("f32");
           }
           if (op == "<" || op == "<=" || op == ">" || op == ">=" ||
@@ -483,7 +505,6 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
         if (const auto first_array_type =
                 std::dynamic_pointer_cast<ArrayTypeNode>(first_element_type)) {
           if (!check_array_type(first_array_type, array_type)) {
-            // TODO: Check dimensions
             LOG(FATAL) << "Array elements have different types";
             return nullptr;
           }
@@ -507,14 +528,11 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
       LOG(FATAL) << "Unknown array";
       return nullptr;
     }
-    if (symbol->dimensions.empty()) {
+    if (!std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
       LOG(FATAL) << "Try to access non-array";
       return nullptr;
     }
-    if (symbol->dimensions.size() != array_access->indices.size()) {
-      LOG(FATAL) << "Array access dimensions mismatch";
-      return nullptr;
-    }
+
     for (const auto &index : array_access->indices) {
       const auto index_type = infer_type(index);
       if (const auto index_type_basic =
@@ -527,6 +545,12 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
         LOG(FATAL) << "Unknown index type";
         return nullptr;
       }
+    }
+    const auto dimensions =
+        std::get<std::shared_ptr<Array>>(symbol->value)->dimensions();
+    if (dimensions.size() != array_access->indices.size()) {
+      LOG(FATAL) << "Array access dimension mismatch";
+      return nullptr;
     }
     if (symbol->type == SymbolType::INT) {
       return std::make_shared<BasicTypeNode>("i32");
@@ -547,13 +571,800 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
   LOG(FATAL) << "Unknown expression type";
   return nullptr;
 }
+std::variant<std::nullptr_t, int, bool, char, float, Range,
+             std::shared_ptr<Array>>
+SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
+  if (node == nullptr) {
+    return {};
+  }
 
-bool SymbolTable::check_array_type(const std::shared_ptr<TypeNode> &type,
-                                   const std::shared_ptr<TypeNode> &other) {
+  if (const auto constant =
+          std::dynamic_pointer_cast<ConstantExpressionNode>(node)) {
+    return constant->value;
+  }
+  if (const auto identifier =
+          std::dynamic_pointer_cast<IdentifierExpressionNode>(node)) {
+    const auto symbol = get_symbol(identifier->name);
+    if (symbol == nullptr) {
+      LOG(FATAL) << "Unknown symbol";
+      return {};
+    }
+
+    return symbol->value;
+    LOG(FATAL) << "Try to evaluate array";
+  }
+  if (const auto binary =
+          std::dynamic_pointer_cast<BinaryExpressionNode>(node)) {
+    const auto left = eval_value(binary->left);
+    const auto right = eval_value(binary->right);
+    const auto op = binary->op;
+    if (std::holds_alternative<std::nullptr_t>(left) &&
+        std::holds_alternative<std::nullptr_t>(right)) {
+      return {};
+    }
+    if (std::holds_alternative<int>(left) &&
+        std::holds_alternative<int>(right)) {
+      auto l = std::get<int>(left);
+      const auto r = std::get<int>(right);
+      if (op == "+") {
+        return {l + r};
+      }
+      if (op == "-") {
+        return {l - r};
+      }
+      if (op == "*") {
+        return {l * r};
+      }
+      if (op == "/") {
+        if (r == 0) {
+          LOG(FATAL) << "Division by zero";
+          return {};
+        }
+        return {l / r};
+      }
+      if (op == "%") {
+        if (r == 0) {
+          LOG(FATAL) << "Division by zero";
+          return {};
+        }
+        return {l % r};
+      }
+      if (op == "<") {
+        return {l < r};
+      }
+      if (op == "<=") {
+        return {l <= r};
+      }
+      if (op == ">") {
+        return {l > r};
+      }
+      if (op == ">=") {
+        return {l >= r};
+      }
+      if (op == "==") {
+        return {l == r};
+      }
+      if (op == "!=") {
+        return {l != r};
+      }
+      if (op == "..") {
+        return {Range(l, r, false)};
+      }
+      if (op == "..=") {
+        return {Range(l, r, true)};
+      }
+      if (op == "=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(l_identifier->name);
+          l = r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l = r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      if (op == "+=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(l_identifier->name);
+          l += r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l += r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      if (op == "-=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(l_identifier->name);
+          l -= r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l -= r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      if (op == "*=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(l_identifier->name);
+          l *= r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l *= r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      if (op == "/=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          if (r == 0) {
+            LOG(FATAL) << "Division by zero";
+            return {};
+          }
+          auto symbol = get_symbol(l_identifier->name);
+          l /= r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l /= r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      if (op == "%=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          if (r == 0) {
+            LOG(FATAL) << "Division by zero";
+            return {};
+          }
+          auto symbol = get_symbol(l_identifier->name);
+          l %= r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l %= r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      return {};
+    }
+    if (std::holds_alternative<float>(left) &&
+        std::holds_alternative<float>(right)) {
+      auto l = std::get<float>(left);
+      const auto r = std::get<float>(right);
+      if (op == "+") {
+        return {l + r};
+      }
+      if (op == "-") {
+        return {l - r};
+      }
+      if (op == "*") {
+        return {l * r};
+      }
+      if (op == "/") {
+        if (r == 0) {
+          LOG(FATAL) << "Division by zero";
+          return {};
+        }
+        return {l / r};
+      }
+
+      if (op == "<") {
+        return {l < r};
+      }
+      if (op == "<=") {
+        return {l <= r};
+      }
+      if (op == ">") {
+        return {l > r};
+      }
+      if (op == ">=") {
+        return {l >= r};
+      }
+      if (op == "==") {
+        return {l == r};
+      }
+      if (op == "!=") {
+        return {l != r};
+      }
+      if (op == "=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          l = r;
+          l_identifier->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l = r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      if (op == "+=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(l_identifier->name);
+          l += r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l += r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      if (op == "-=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(l_identifier->name);
+          l -= r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l -= r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      if (op == "*=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(l_identifier->name);
+          l *= r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l *= r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      if (op == "/=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          if (r == static_cast<float>(0)) {
+            LOG(FATAL) << "Division by zero";
+            return {};
+          }
+          auto symbol = get_symbol(l_identifier->name);
+          l /= r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l /= r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      LOG(FATAL) << "Cannot perform binary operation on float";
+      return {};
+    }
+    if (std::holds_alternative<bool>(left) &&
+        std::holds_alternative<bool>(right)) {
+      auto l = std::get<bool>(left);
+      const auto r = std::get<bool>(right);
+      if (op == "&&") {
+        return {l && r};
+      }
+      if (op == "||") {
+        return {l || r};
+      }
+      if (op == "==") {
+        return {l == r};
+      }
+      if (op == "!=") {
+        return {l != r};
+      }
+      if (op == "=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(l_identifier->name);
+          l = r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        if (const auto array_access =
+                std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(array_access->array->name);
+          l = r;
+          array_access->value = l;
+          if (std::holds_alternative<std::shared_ptr<Array>>(symbol->value)) {
+            auto array = std::get<std::shared_ptr<Array>>(symbol->value);
+            auto indices = std::vector<int>{};
+            for (const auto &index : array_access->indices) {
+              if (const auto index_value = eval_value(index);
+                  std::holds_alternative<int>(index_value)) {
+                indices.push_back(std::get<int>(index_value));
+              } else {
+                LOG(FATAL) << "Array index is not an integer";
+                return {};
+              }
+            }
+            array->set(indices, {l});
+          }
+        }
+        return {};
+      }
+      return {};
+    }
+    if (std::holds_alternative<char>(left) &&
+        std::holds_alternative<char>(right)) {
+      auto l = std::get<char>(left);
+      const auto r = std::get<char>(right);
+      if (op == "<") {
+        return {l < r};
+      }
+      if (op == "<=") {
+        return {l <= r};
+      }
+      if (op == ">") {
+        return {l > r};
+      }
+      if (op == ">=") {
+        return {l >= r};
+      }
+      if (op == "==") {
+        return {l == r};
+      }
+      if (op == "!=") {
+        return {l != r};
+      }
+      if (op == "=") {
+        if (const auto l_identifier =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(
+                    binary->left)) {
+          auto symbol = get_symbol(l_identifier->name);
+          l = r;
+          l_identifier->value = l;
+          symbol->value = l;
+        }
+        return {};
+      }
+      return {};
+    }
+  }
+
+  if (const auto unary = std::dynamic_pointer_cast<UnaryExpressionNode>(node)) {
+    const auto exp = eval_value(unary->expression);
+    if (std::holds_alternative<std::nullptr_t>(exp)) {
+      return {};
+    }
+    if (std::holds_alternative<int>(exp)) {
+      const auto e = std::get<int>(exp);
+      if (unary->op == "+") {
+        return {e};
+      }
+      if (unary->op == "-") {
+        return {-e};
+      }
+      return {};
+    }
+    if (std::holds_alternative<float>(exp)) {
+      const auto e = std::get<float>(exp);
+      if (unary->op == "+") {
+        return {e};
+      }
+      if (unary->op == "-") {
+        return {-e};
+      }
+      return {};
+    }
+    if (std::holds_alternative<bool>(exp)) {
+      const auto e = std::get<bool>(exp);
+      if (unary->op == "!") {
+        return {!e};
+      }
+      return {};
+    }
+  }
+  if (const auto cast = std::dynamic_pointer_cast<CastExpressionNode>(node)) {
+    const auto type = cast->type;
+    const auto value = eval_value(cast->expression);
+    if (std::holds_alternative<std::nullptr_t>(value)) {
+      return {};
+    }
+    if (std::holds_alternative<int>(value)) {
+      const auto v = std::get<int>(value);
+      if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
+        if (basic->type == "i32") {
+          return {v};
+        }
+        if (basic->type == "f32") {
+          return {static_cast<float>(v)};
+        }
+        if (basic->type == "char") {
+          return {static_cast<char>(v)};
+        }
+        if (basic->type == "bool") {
+          return {static_cast<bool>(v)};
+        }
+        LOG(FATAL) << "Unknown cast type";
+        return {};
+      }
+      LOG(FATAL) << "Unknown cast type";
+      return {};
+    }
+    if (std::holds_alternative<float>(value)) {
+      const auto v = std::get<float>(value);
+      if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
+        if (basic->type == "i32") {
+          return {static_cast<int>(v)};
+        }
+        if (basic->type == " f32") {
+          return {v};
+        }
+        if (basic->type == "char") {
+          return {static_cast<char>(v)};
+        }
+        if (basic->type == "bool") {
+          return {static_cast<bool>(v)};
+        }
+        LOG(FATAL) << "Unknown cast type";
+        return {};
+      }
+    }
+    if (std::holds_alternative<char>(value)) {
+      const auto v = std::get<char>(value);
+      if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
+        if (basic->type == "i32") {
+          return {static_cast<int>(v)};
+        }
+        if (basic->type == "f32") {
+          return {static_cast<float>(v)};
+        }
+        if (basic->type == "char") {
+          return {v};
+        }
+        if (basic->type == "bool") {
+          return {static_cast<bool>(v)};
+        }
+        LOG(FATAL) << "Unknown cast type";
+        return {};
+      }
+    }
+    if (std::holds_alternative<bool>(value)) {
+      const auto v = std::get<bool>(value);
+      if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
+        if (basic->type == "i32") {
+          return {static_cast<int>(v)};
+        }
+        if (basic->type == "f32") {
+          return {static_cast<float>(v)};
+        }
+        if (basic->type == "char") {
+          return {static_cast<char>(v)};
+        }
+        if (basic->type == "bool") {
+          return {v};
+        }
+        LOG(FATAL) << "Unknown cast type";
+        return {};
+      }
+    }
+    LOG(FATAL) << "Unknown cast type";
+    return {};
+  }
+  if (const auto array = std::dynamic_pointer_cast<ArrayExpressionNode>(node)) {
+    if (array->elements.empty()) {
+      if (array->element == nullptr || array->count == nullptr) {
+        LOG(FATAL) << "Empty array";
+        return {};
+      }
+      const auto element = eval_value(array->element);
+      const auto count = eval_value(array->count);
+      if (std::holds_alternative<std::nullptr_t>(element) ||
+          std::holds_alternative<std::nullptr_t>(count)) {
+        return {};
+      }
+      if (std::holds_alternative<int>(count)) {
+        const auto c = std::get<int>(count);
+        auto elements =
+            std::vector<std::variant<std::nullptr_t, int, bool, char, float,
+                                     Range, std::shared_ptr<Array>>>{};
+        for (auto i = 0; i < c; ++i) {
+          elements.push_back(element);
+        }
+        return {std::make_shared<Array>(c, elements)};
+      }
+      LOG(FATAL) << "Array count is not an integer";
+      return {};
+    }
+    auto elements =
+        std::vector<std::variant<std::nullptr_t, int, bool, char, float, Range,
+                                 std::shared_ptr<Array>>>{};
+    for (const auto &element : array->elements) {
+      const auto value = eval_value(element);
+      if (std::holds_alternative<std::nullptr_t>(value)) {
+        return {};
+      }
+      elements.push_back(value);
+    }
+    return {std::make_shared<Array>(elements.size(), elements)};
+  }
+  if (const auto array_access =
+          std::dynamic_pointer_cast<ArrayAccessExpressionNode>(node)) {
+    const auto symbol = get_symbol(array_access->array->name);
+    if (symbol == nullptr) {
+      LOG(FATAL) << "Unknown array";
+      return {};
+    }
+    if (std::holds_alternative<std::shared_ptr<Array>>(
+            array_access->array->value)) {
+      const auto array =
+          std::get<std::shared_ptr<Array>>(array_access->array->value);
+      const auto dimensions = array->dimensions();
+      if (array_access->indices.size() != dimensions.size()) {
+        LOG(FATAL) << "Array access dimensions mismatch";
+        return {};
+      }
+      auto indices = std::vector<int>{};
+      for (const auto &index : array_access->indices) {
+        const auto value = eval_value(index);
+        if (std::holds_alternative<std::nullptr_t>(value)) {
+          LOG(FATAL) << "Array access index cannot be evaluated";
+          return {};
+        }
+        if (std::holds_alternative<int>(value)) {
+          indices.push_back(std::get<int>(value));
+        } else {
+          LOG(FATAL) << "Array access index is not an integer";
+          return {};
+        }
+      }
+      if (indices.size() != dimensions.size()) {
+        LOG(FATAL) << "Array access dimensions mismatch";
+        return {};
+      }
+      auto value = array->get(indices);
+      if (std::holds_alternative<std::nullptr_t>(value)) {
+        return {};
+      }
+      array_access->value = value;
+      return value;
+    }
+    LOG(FATAL) << "Try to access non-array";
+    return {};
+  }
+
+  LOG(FATAL) << "Unknown expression type";
+  return std::variant<std::nullptr_t, int, bool, char, float, Range,
+                      std::shared_ptr<Array>>{};
+}
+
+bool SymbolTable::check_array_type(
+    const std::shared_ptr<TypeNode> &type,
+    const std::shared_ptr<TypeNode> &other) const {
   if (const auto array_type = std::dynamic_pointer_cast<ArrayTypeNode>(type)) {
     if (const auto other_array_type =
             std::dynamic_pointer_cast<ArrayTypeNode>(other)) {
-      if (check_array_type(array_type->type, other_array_type->type)) {
+      const auto array_count = eval_value(array_type->size);
+      if (const auto other_array_count = eval_value(other_array_type->size);
+          check_array_type(array_type->type, other_array_type->type) &&
+          std::holds_alternative<int>(array_count) &&
+          std::holds_alternative<int>(other_array_count) &&
+          std::get<int>(array_count) == std::get<int>(other_array_count)) {
         return true;
       }
       return false;

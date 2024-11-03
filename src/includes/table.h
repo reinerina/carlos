@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <glog/logging.h>
+#include "carlos.h"
 #include "ast.h"
 
 namespace carlos {
@@ -24,14 +25,59 @@ enum class SymbolKind { VARIABLE, FUNCTION, PARAMETER };
 
 class Symbol {
  public:
-  Symbol(std::string name, const SymbolType type, const SymbolKind kind,
-         const bool mutability)
-      : name(std::move(name)), type(type), kind(kind), mutability(mutability) {}
+  Symbol(std::string name,
+         const std::variant<std::nullptr_t, int, bool, char, float, Range,
+                            std::shared_ptr<Array>> &value,
+         const SymbolKind kind, const bool mutability)
+      : name(std::move(name)),
+        kind(kind),
+        value(value),
+        mutability(mutability) {
+    type = get_type(value);
+    if (std::holds_alternative<std::shared_ptr<Array>>(value)) {
+      cal_dimensions(std::get<std::shared_ptr<Array>>(value));
+    }
+  }
+
+  static SymbolType get_type(
+      const std::variant<std::nullptr_t, int, bool, char, float, Range,
+                         std::shared_ptr<Array>> &value) {
+    if (std::holds_alternative<int>(value)) {
+      return SymbolType::INT;
+    }
+    if (std::holds_alternative<float>(value)) {
+      return SymbolType::FLOAT;
+    }
+    if (std::holds_alternative<char>(value)) {
+      return SymbolType::CHAR;
+    }
+    if (std::holds_alternative<bool>(value)) {
+      return SymbolType::BOOL;
+    }
+    if (std::holds_alternative<Range>(value)) {
+      return SymbolType::INT;
+    }
+    if (std::holds_alternative<std::shared_ptr<Array>>(value)) {
+      return get_type(std::get<std::shared_ptr<Array>>(value)->values[0]);
+    }
+    return SymbolType::UNKNOWN;
+  }
+
+  void cal_dimensions(const std::shared_ptr<Array> &array) {
+    dimensions.push_back(static_cast<int>(array->values.size()));
+    if (std::holds_alternative<std::shared_ptr<Array>>(array->values[0])) {
+      cal_dimensions(std::get<std::shared_ptr<Array>>(array->values[0]));
+    }
+  }
 
   std::string name;
-  SymbolType type;
   SymbolKind kind;
+  SymbolType type = SymbolType::UNKNOWN;
   std::vector<int> dimensions{};
+
+  std::variant<std::nullptr_t, int, bool, char, float, Range,
+               std::shared_ptr<Array>>
+      value{};
   bool mutability{};
 };
 
@@ -96,27 +142,31 @@ class SymbolTable {
       std::cout << name << "\t\t\t\t";
       switch (symbol->type) {
         case SymbolType::INT:
-          std::cout << "i32\t\t\t\t";
+          std::cout << "i32";
           break;
         case SymbolType::FLOAT:
-          std::cout << "f32\t\t\t\t";
+          std::cout << "f32";
           break;
         case SymbolType::CHAR:
-          std::cout << "char\t\t\t\t";
+          std::cout << "char";
           break;
         case SymbolType::BOOL:
-          std::cout << "bool\t\t\t\t";
+          std::cout << "bool";
           break;
         case SymbolType::VOID:
-          std::cout << "void\t\t\t\t";
+          std::cout << "void";
           break;
         case SymbolType::UNKNOWN:
-          std::cout << "unknown\t\t\t\t";
+          std::cout << "unknown";
           break;
         default: {
           LOG(FATAL) << "Unknown type";
         }
       }
+      for (const auto &dim : symbol->dimensions) {
+        std::cout << "[" << dim << "]";
+      }
+      std::cout << "\t\t\t\t";
       switch (symbol->kind) {
         case SymbolKind::VARIABLE:
           std::cout << "variable\t\t";
@@ -148,92 +198,25 @@ class SymbolTable {
     scopes.back()->add_symbol(symbol);
   }
 
-  void add_symbol(const std::string &name, const SymbolType type,
-                  const SymbolKind kind, const bool mutability) const {
-    CHECK_NE(scopes.size(), 0) << "No scope to add symbol";
-    add_symbol(std::make_shared<Symbol>(name, type, kind, mutability));
-  }
-
   void add_symbol(const std::string &name,
-                  const std::shared_ptr<ArrayTypeNode> &type,
+                  const std::variant<std::nullptr_t, int, bool, char, float,
+                                     Range, std::shared_ptr<Array>> &value,
                   const SymbolKind kind, const bool mutability) const {
     CHECK_NE(scopes.size(), 0) << "No scope to add symbol";
-    auto array_type = type->type;
-    auto symbol_type = SymbolType::UNKNOWN;
-    auto dimensions = std::vector<int>{};
-    while (true) {
-      if (const auto basic_type =
-              std::dynamic_pointer_cast<BasicTypeNode>(array_type)) {
-        if (basic_type->type == "i32") {
-          symbol_type = SymbolType::INT;
-        } else if (basic_type->type == "f32") {
-          symbol_type = SymbolType::FLOAT;
-        } else if (basic_type->type == "char") {
-          symbol_type = SymbolType::CHAR;
-        } else if (basic_type->type == "bool") {
-          symbol_type = SymbolType::BOOL;
-        } else {
-          LOG(FATAL) << "Unknown basic type";
-        }
-        break;
-      }
-
-      if (const auto array_type_node =
-              std::dynamic_pointer_cast<ArrayTypeNode>(array_type)) {
-        array_type = array_type_node->type;
-        // TODO: Array dimensions
-      } else {
-        LOG(FATAL) << "Unknown type";
-      }
-    }
-
-    add_symbol(std::make_shared<Symbol>(name, symbol_type, kind, mutability));
+    add_symbol(std::make_shared<Symbol>(name, value, kind, mutability));
   }
 
   void add_symbol_to_next_scope(const std::shared_ptr<Symbol> &symbol) {
     symbols_in_next_scope[symbol->name] = symbol;
   }
 
-  void add_symbol_to_next_scope(const std::string &name, const SymbolType type,
-                                const SymbolKind kind, const bool mutability) {
+  void add_symbol_to_next_scope(
+      const std::string &name,
+      const std::variant<std::nullptr_t, int, bool, char, float, Range,
+                         std::shared_ptr<Array>> &value,
+      const SymbolKind kind, const bool mutability) {
     add_symbol_to_next_scope(
-        std::make_shared<Symbol>(name, type, kind, mutability));
-  }
-
-  void add_symbol_to_next_scope(const std::string &name,
-                                const std::shared_ptr<ArrayTypeNode> &type,
-                                const SymbolKind kind, const bool mutability) {
-    auto array_type = type->type;
-    auto symbol_type = SymbolType::UNKNOWN;
-    auto dimensions = std::vector<int>{};
-    while (true) {
-      if (const auto basic_type =
-              std::dynamic_pointer_cast<BasicTypeNode>(array_type)) {
-        if (basic_type->type == "i32") {
-          symbol_type = SymbolType::INT;
-        } else if (basic_type->type == "f32") {
-          symbol_type = SymbolType::FLOAT;
-        } else if (basic_type->type == "char") {
-          symbol_type = SymbolType::CHAR;
-        } else if (basic_type->type == "bool") {
-          symbol_type = SymbolType::BOOL;
-        } else {
-          LOG(FATAL) << "Unknown basic type";
-        }
-        break;
-      }
-
-      if (const auto array_type_node =
-              std::dynamic_pointer_cast<ArrayTypeNode>(array_type)) {
-        array_type = array_type_node->type;
-        // TODO: Array dimensions
-      } else {
-        LOG(FATAL) << "Unknown type";
-      }
-    }
-
-    add_symbol_to_next_scope(
-        std::make_shared<Symbol>(name, symbol_type, kind, mutability));
+        std::make_shared<Symbol>(name, value, kind, mutability));
   }
 
   [[nodiscard]] std::shared_ptr<Symbol> get_symbol(
@@ -260,12 +243,15 @@ class SymbolTable {
   void process_expression(
       const std::shared_ptr<ExpressionNode> &expression) const;
 
-  [[nodiscard]] static bool check_array_type(
+  [[nodiscard]] bool check_array_type(
       const std::shared_ptr<TypeNode> &type,
-      const std::shared_ptr<TypeNode> &other);
+      const std::shared_ptr<TypeNode> &other) const;
 
   [[nodiscard]] std::shared_ptr<TypeNode> infer_type(
       const std::shared_ptr<ExpressionNode> &node) const;
+  [[nodiscard]] std::variant<std::nullptr_t, int, bool, char, float, Range,
+                             std::shared_ptr<Array>>
+  eval_value(const std::shared_ptr<ExpressionNode> &node) const;
 
   std::shared_ptr<ASTNode> root;
   std::vector<std::shared_ptr<SymbolScope>> scopes;

@@ -1,7 +1,9 @@
 fn main(){
-    let x = 3 * (1 + 2) + -3 as i32;
+    let mut x = 3 * (1 + 2) + -3 as i32;
     let y : i32;
-    let mut x : f32 = 3.0 + 4.0;
+
+    let a : [i32; x];
+    let b : [[i32; 5]; 6];
 
 
     for i in 0..5 {
@@ -9,14 +11,14 @@ fn main(){
         continue;
     }
 
-    while x < 10.0 {
+    while x < 10 {
         break;
     }
 
-    if x < 10.0 {
-        x += 1.0;
+    if x < 10 {
+        x += 1;
     } else {
-        x -= 1.0;
+        x -= 1;
     }
 
     {

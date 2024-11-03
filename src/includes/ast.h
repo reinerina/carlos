@@ -12,6 +12,7 @@
 #include <memory>
 #include <vector>
 #include <glog/logging.h>
+#include "carlos.h"
 
 namespace carlos {
 
@@ -59,7 +60,11 @@ class BasicTypeNode final : public TypeNode {
 class ExpressionNode : public ASTNode {
  public:
   ~ExpressionNode() override = default;
+
   // TODO: type of expression
+  std::variant<std::nullptr_t, int, bool, char, float, Range,
+               std::shared_ptr<Array>>
+      value{};
 };
 
 class BinaryExpressionNode final : public ExpressionNode {
@@ -97,9 +102,9 @@ class ConstantExpressionNode final : public ExpressionNode {
  public:
   ~ConstantExpressionNode() override = default;
   template <typename T>
-  explicit ConstantExpressionNode(T value) : value(value) {}
-
-  std::variant<int, float, bool, char> value;
+  explicit ConstantExpressionNode(T value) : ExpressionNode() {
+    this->value = std::move(value);
+  }
 };
 
 class CastExpressionNode final : public ExpressionNode {
@@ -113,9 +118,63 @@ class CastExpressionNode final : public ExpressionNode {
   std::shared_ptr<TypeNode> type;
 };
 
+class ArrayTypeNode final : public TypeNode {
+ public:
+  ~ArrayTypeNode() override = default;
+  explicit ArrayTypeNode(const std::shared_ptr<Array> &array) {
+    const auto res = build(array);
+    CHECK_NE(res, nullptr) << "Array type is null";
+    type = res;
+    size = std::make_shared<ConstantExpressionNode>(array->size);
+  }
+  ArrayTypeNode(std::shared_ptr<TypeNode> type,
+                std::shared_ptr<ExpressionNode> size)
+      : type(std::move(type)), size(std::move(size)) {}
+
+  std::shared_ptr<TypeNode> type;
+  std::shared_ptr<ExpressionNode> size;
+
+ private:
+  static std::shared_ptr<TypeNode> build(const std::shared_ptr<Array> &array) {
+    const auto size_expr =
+        std::make_shared<ConstantExpressionNode>(array->size);
+
+    if (const auto arr =
+            std::get_if<std::shared_ptr<Array>>(&array->values[0])) {
+      const auto inner = build(*arr);
+      CHECK_NE(inner, nullptr) << "Inner array type is null";
+      return std::make_shared<ArrayTypeNode>(inner, size_expr);
+    }
+
+    if (std::holds_alternative<int>(array->values[0])) {
+      const auto basic_type = std::make_shared<BasicTypeNode>("i32");
+      return std::make_shared<ArrayTypeNode>(basic_type, size_expr);
+    }
+    if (std::holds_alternative<float>(array->values[0])) {
+      const auto basic_type = std::make_shared<BasicTypeNode>("f32");
+      return std::make_shared<ArrayTypeNode>(basic_type, size_expr);
+    }
+    if (std::holds_alternative<bool>(array->values[0])) {
+      const auto basic_type = std::make_shared<BasicTypeNode>("bool");
+      return std::make_shared<ArrayTypeNode>(basic_type, size_expr);
+    }
+    if (std::holds_alternative<char>(array->values[0])) {
+      const auto basic_type = std::make_shared<BasicTypeNode>("char");
+      return std::make_shared<ArrayTypeNode>(basic_type, size_expr);
+    }
+    return nullptr;
+  }
+};
+
 class ArrayExpressionNode final : public ExpressionNode {
  public:
   ~ArrayExpressionNode() override = default;
+  explicit ArrayExpressionNode(const std::shared_ptr<TypeNode> &type) {
+    const auto res = build(type);
+    CHECK_NE(res, nullptr) << "Array type is null";
+    element = res->element;
+    count = res->count;
+  }
   explicit ArrayExpressionNode(
       std::vector<std::shared_ptr<ExpressionNode>> elements)
       : elements(std::move(elements)) {}
@@ -126,6 +185,42 @@ class ArrayExpressionNode final : public ExpressionNode {
 
   std::vector<std::shared_ptr<ExpressionNode>> elements;
   std::shared_ptr<ExpressionNode> element, count;
+
+ private:
+  static std::shared_ptr<ArrayExpressionNode> build(
+      const std::shared_ptr<TypeNode> &type) {
+    if (const auto array_type =
+            std::dynamic_pointer_cast<ArrayTypeNode>(type)) {
+      const auto count = array_type->size;
+      if (const auto child_array_type =
+              std::dynamic_pointer_cast<ArrayTypeNode>(array_type->type)) {
+        const auto inner = build(child_array_type);
+        CHECK_NE(inner, nullptr) << "Inner array type is null";
+        return std::make_shared<ArrayExpressionNode>(inner, count);
+      }
+      if (const auto basic_type =
+              std::dynamic_pointer_cast<BasicTypeNode>(array_type->type)) {
+        if (basic_type->type == "i32") {
+          return std::make_shared<ArrayExpressionNode>(
+              std::make_shared<ConstantExpressionNode>(0), count);
+        }
+        if (basic_type->type == "f32") {
+          return std::make_shared<ArrayExpressionNode>(
+              std::make_shared<ConstantExpressionNode>(0.0f), count);
+        }
+        if (basic_type->type == "bool") {
+          return std::make_shared<ArrayExpressionNode>(
+              std::make_shared<ConstantExpressionNode>(false), count);
+        }
+        if (basic_type->type == "char") {
+          return std::make_shared<ArrayExpressionNode>(
+              std::make_shared<ConstantExpressionNode>('\0'), count);
+        }
+        LOG(FATAL) << "Unknown basic type";
+      }
+    }
+    return nullptr;
+  }
 };
 
 class ArrayAccessExpressionNode final : public ExpressionNode {
@@ -138,17 +233,6 @@ class ArrayAccessExpressionNode final : public ExpressionNode {
 
   std::shared_ptr<IdentifierExpressionNode> array;
   std::vector<std::shared_ptr<ExpressionNode>> indices;
-};
-
-class ArrayTypeNode final : public TypeNode {
- public:
-  ~ArrayTypeNode() override = default;
-  ArrayTypeNode(std::shared_ptr<TypeNode> type,
-                std::shared_ptr<ExpressionNode> size)
-      : type(std::move(type)), size(std::move(size)) {}
-
-  std::shared_ptr<TypeNode> type;
-  std::shared_ptr<ExpressionNode> size;
 };
 
 class RangeTypeNode final : public TypeNode {
@@ -190,8 +274,11 @@ class DeclarationStatementNode final : public StatementNode {
           if (array_type->size == nullptr) {
             std::cerr << "DeclarationStatementNode: array size is null"
                       << std::endl;
+          } else {
+            this->expression =
+                std::make_shared<ArrayExpressionNode>(array_type);
           }
-          // TODO: array initialization
+
         } else if (const auto basic_type =
                        std::dynamic_pointer_cast<BasicTypeNode>(this->type)) {
           if (basic_type->type == "i32") {
@@ -208,7 +295,6 @@ class DeclarationStatementNode final : public StatementNode {
         }
       }
     }
-    // TODO: check type and expression, and auto type inference
   }
 
   std::shared_ptr<IdentifierExpressionNode> identifier;

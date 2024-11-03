@@ -45,11 +45,12 @@ int main(int argc, char *argv[]) {
   auto parser = carlos::CarlosParser(lexer);
   parser.parse();
 
-  // auto ast = carlos::ASTDisplay(carlos::root, 2);
-  // ast.print_ast();
+  auto ast = carlos::ASTDisplay(carlos::root, 2);
+  ast.print_ast();
 
   auto table = carlos::SymbolTable(carlos::root, true);
   table.process();
+
 
   return 0;
 }
