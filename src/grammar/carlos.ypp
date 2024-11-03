@@ -237,7 +237,11 @@
 
   for: CA_FOR CA_IDENTIFIER CA_IN expression statement_compound {
                 auto identifier = std::make_shared<IdentifierExpressionNode>($2);
-                $$ = std::make_shared<ForStatementNode>(std::move(identifier), std::move($4), std::move($5));
+                $$ = std::make_shared<ForStatementNode>(std::move(identifier), false, std::move($4), std::move($5));
+            }
+            | CA_FOR CA_MUT CA_IDENTIFIER CA_IN expression statement_compound {
+                auto identifier = std::make_shared<IdentifierExpressionNode>($3);
+                $$ = std::make_shared<ForStatementNode>(std::move(identifier), true, std::move($5), std::move($6));
             }
             ;
 

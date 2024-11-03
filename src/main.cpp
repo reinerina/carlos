@@ -1,9 +1,14 @@
 #include <fstream>
 #include <cxxopts.hpp>
+#include <glog/logging.h>
 #include "carlos.lex.h"
 #include "carlos.parser.h"
+#include "ast.h"
+#include "table.h"
 
 int main(int argc, char *argv[]) {
+  google::InitGoogleLogging(argv[0]);
+
   auto options = std::make_unique<cxxopts::Options>(
       "calors", "A simple programming language compiler");
 
@@ -40,8 +45,11 @@ int main(int argc, char *argv[]) {
   auto parser = carlos::CarlosParser(lexer);
   parser.parse();
 
-  auto ast = carlos::AST(carlos::root, 2);
-  ast.print_ast();
+  // auto ast = carlos::ASTDisplay(carlos::root, 2);
+  // ast.print_ast();
+
+  auto table = carlos::SymbolTable(carlos::root, true);
+  table.process();
 
   return 0;
 }

@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <string>
+#include <utility>
 #include <variant>
 #include <memory>
 #include <vector>
@@ -35,7 +36,7 @@ class BasicTypeNode;
 class ArrayTypeNode;
 class EntryNode;
 class ProgramNode;
-class AST;
+class ASTDisplay;
 
 class ASTNode {
  public:
@@ -150,6 +151,18 @@ class ArrayTypeNode final : public TypeNode {
   std::shared_ptr<ExpressionNode> size;
 };
 
+class RangeTypeNode final : public TypeNode {
+ public:
+  ~RangeTypeNode() override = default;
+  RangeTypeNode(std::shared_ptr<ExpressionNode> start,
+                std::shared_ptr<ExpressionNode> end, const bool inclusive)
+      : start(std::move(start)), end(std::move(end)), inclusive(inclusive) {}
+
+  std::shared_ptr<ExpressionNode> start;
+  std::shared_ptr<ExpressionNode> end;
+  bool inclusive;
+};
+
 class StatementNode : public ASTNode {
  public:
   ~StatementNode() override = default;
@@ -173,14 +186,14 @@ class DeclarationStatementNode final : public StatementNode {
                   << std::endl;
       } else {
         if (const auto array_type =
-                dynamic_cast<ArrayTypeNode *>(this->type.get())) {
+                std::dynamic_pointer_cast<ArrayTypeNode>(this->type)) {
           if (array_type->size == nullptr) {
             std::cerr << "DeclarationStatementNode: array size is null"
                       << std::endl;
           }
           // TODO: array initialization
         } else if (const auto basic_type =
-                       dynamic_cast<BasicTypeNode *>(this->type.get())) {
+                       std::dynamic_pointer_cast<BasicTypeNode>(this->type)) {
           if (basic_type->type == "i32") {
             this->expression = std::make_shared<ConstantExpressionNode>(0);
           } else if (basic_type->type == "f32") {
@@ -255,15 +268,18 @@ class ForStatementNode final : public StatementNode {
  public:
   ~ForStatementNode() override = default;
   ForStatementNode(std::shared_ptr<IdentifierExpressionNode> iter,
+                   const bool mutability,
                    std::shared_ptr<ExpressionNode> iterator,
                    std::shared_ptr<StatementNode> body)
       : iter(std::move(iter)),
+        mutability(mutability),
         iterator(std::move(iterator)),
         body(std::move(body)) {}
 
   std::shared_ptr<IdentifierExpressionNode> iter;
   std::shared_ptr<ExpressionNode> iterator;
   std::shared_ptr<StatementNode> body;
+  bool mutability{};
 };
 
 class ControlStatementNode final : public StatementNode {
@@ -302,32 +318,35 @@ class ProgramNode final : public ASTNode {
 
 inline std::shared_ptr<ProgramNode> root = nullptr;
 
-class AST {
+class ASTDisplay {
  public:
-  explicit AST(const std::shared_ptr<ASTNode> &root) : root(root) {}
-  AST(const std::shared_ptr<ProgramNode> &root, const int step)
+  explicit ASTDisplay(const std::shared_ptr<ASTNode> &root) : root(root) {}
+  ASTDisplay(const std::shared_ptr<ASTNode> &root, const int step)
       : root(root), step(step) {
-    CHECK_NE(root, nullptr);
-    CHECK_NE(step, 0);
+    CHECK_NE(root, nullptr) << "Root node is null";
+    CHECK_NE(step, 0) << "Step is zero";
   }
 
   void print_ast(int indent = 0) const;
 
-  std::shared_ptr<ASTNode> root;
-  int step = 2;
-
  private:
-  void print_node(ASTNode *node, int indent) const;
+  void print_node(const std::shared_ptr<ASTNode> &node, int indent) const;
 
   static void print_indent(int indent);
-  void print_type(TypeNode *type, int indent) const;
+  void print_type(const std::shared_ptr<TypeNode> &type, int indent) const;
 
-  void print_expression(ExpressionNode *expression, int indent) const;
+  void print_expression(const std::shared_ptr<ExpressionNode> &expression,
+                        int indent) const;
 
-  void print_statement(StatementNode *statement, int indent) const;
-  void print_entry(const EntryNode *entry, int indent) const;
+  void print_statement(const std::shared_ptr<StatementNode> &statement,
+                       int indent) const;
+  void print_entry(const std::shared_ptr<EntryNode> &entry, int indent) const;
 
-  void print_program(const ProgramNode *program, int indent) const;
+  void print_program(const std::shared_ptr<ProgramNode> &program,
+                     int indent) const;
+
+  std::shared_ptr<ASTNode> root;
+  int step = 2;
 };
 }  // namespace carlos
 
