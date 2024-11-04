@@ -434,51 +434,55 @@ namespace carlos {
       // array_type
       char dummy6[sizeof (std::shared_ptr<ArrayTypeNode>)];
 
+      // call
+      char dummy7[sizeof (std::shared_ptr<CallStatementNode>)];
+
       // constant
-      char dummy7[sizeof (std::shared_ptr<ConstantExpressionNode>)];
+      char dummy8[sizeof (std::shared_ptr<ConstantExpressionNode>)];
 
       // break
       // continue
-      char dummy8[sizeof (std::shared_ptr<ControlStatementNode>)];
+      char dummy9[sizeof (std::shared_ptr<ControlStatementNode>)];
 
       // declaration
-      char dummy9[sizeof (std::shared_ptr<DeclarationStatementNode>)];
+      char dummy10[sizeof (std::shared_ptr<DeclarationStatementNode>)];
 
       // entry
-      char dummy10[sizeof (std::shared_ptr<EntryNode>)];
+      char dummy11[sizeof (std::shared_ptr<EntryNode>)];
 
       // expression
-      char dummy11[sizeof (std::shared_ptr<ExpressionNode>)];
+      char dummy12[sizeof (std::shared_ptr<ExpressionNode>)];
 
       // for
-      char dummy12[sizeof (std::shared_ptr<ForStatementNode>)];
+      char dummy13[sizeof (std::shared_ptr<ForStatementNode>)];
 
       // if
       // else
-      char dummy13[sizeof (std::shared_ptr<IfStatementNode>)];
+      char dummy14[sizeof (std::shared_ptr<IfStatementNode>)];
 
       // return
-      char dummy14[sizeof (std::shared_ptr<ReturnStatementNode>)];
+      char dummy15[sizeof (std::shared_ptr<ReturnStatementNode>)];
 
       // statement
-      char dummy15[sizeof (std::shared_ptr<StatementNode>)];
+      char dummy16[sizeof (std::shared_ptr<StatementNode>)];
 
       // statement_compound
       // statements
-      char dummy16[sizeof (std::shared_ptr<StatementsNode>)];
+      char dummy17[sizeof (std::shared_ptr<StatementsNode>)];
 
       // type
-      char dummy17[sizeof (std::shared_ptr<TypeNode>)];
+      char dummy18[sizeof (std::shared_ptr<TypeNode>)];
 
       // while
-      char dummy18[sizeof (std::shared_ptr<WhileStatementNode>)];
+      char dummy19[sizeof (std::shared_ptr<WhileStatementNode>)];
 
       // CA_IDENTIFIER
-      char dummy19[sizeof (std::string)];
+      char dummy20[sizeof (std::string)];
 
       // array_element
       // array_indices
-      char dummy20[sizeof (std::vector<std::shared_ptr<ExpressionNode>>)];
+      // params
+      char dummy21[sizeof (std::vector<std::shared_ptr<ExpressionNode>>)];
     };
 
     /// The size of the largest semantic type.
@@ -699,13 +703,15 @@ namespace carlos {
         S_array_access = 82,                     // array_access
         S_declaration = 83,                      // declaration
         S_expression = 84,                       // expression
-        S_if = 85,                               // if
-        S_else = 86,                             // else
-        S_while = 87,                            // while
-        S_for = 88,                              // for
-        S_break = 89,                            // break
-        S_continue = 90,                         // continue
-        S_return = 91                            // return
+        S_params = 85,                           // params
+        S_call = 86,                             // call
+        S_if = 87,                               // if
+        S_else = 88,                             // else
+        S_while = 89,                            // while
+        S_for = 90,                              // for
+        S_break = 91,                            // break
+        S_continue = 92,                         // continue
+        S_return = 93                            // return
       };
     };
 
@@ -766,6 +772,10 @@ namespace carlos {
         value.move< std::shared_ptr<ArrayTypeNode> > (std::move (that.value));
         break;
 
+      case symbol_kind::S_call: // call
+        value.move< std::shared_ptr<CallStatementNode> > (std::move (that.value));
+        break;
+
       case symbol_kind::S_constant: // constant
         value.move< std::shared_ptr<ConstantExpressionNode> > (std::move (that.value));
         break;
@@ -823,6 +833,7 @@ namespace carlos {
 
       case symbol_kind::S_array_element: // array_element
       case symbol_kind::S_array_indices: // array_indices
+      case symbol_kind::S_params: // params
         value.move< std::vector<std::shared_ptr<ExpressionNode>> > (std::move (that.value));
         break;
 
@@ -927,6 +938,20 @@ namespace carlos {
       {}
 #else
       basic_symbol (typename Base::kind_type t, const std::shared_ptr<ArrayTypeNode>& v, const location_type& l)
+        : Base (t)
+        , value (v)
+        , location (l)
+      {}
+#endif
+
+#if 201103L <= YY_CPLUSPLUS
+      basic_symbol (typename Base::kind_type t, std::shared_ptr<CallStatementNode>&& v, location_type&& l)
+        : Base (t)
+        , value (std::move (v))
+        , location (std::move (l))
+      {}
+#else
+      basic_symbol (typename Base::kind_type t, const std::shared_ptr<CallStatementNode>& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1177,6 +1202,10 @@ switch (yykind)
         value.template destroy< std::shared_ptr<ArrayTypeNode> > ();
         break;
 
+      case symbol_kind::S_call: // call
+        value.template destroy< std::shared_ptr<CallStatementNode> > ();
+        break;
+
       case symbol_kind::S_constant: // constant
         value.template destroy< std::shared_ptr<ConstantExpressionNode> > ();
         break;
@@ -1234,6 +1263,7 @@ switch (yykind)
 
       case symbol_kind::S_array_element: // array_element
       case symbol_kind::S_array_indices: // array_indices
+      case symbol_kind::S_params: // params
         value.template destroy< std::vector<std::shared_ptr<ExpressionNode>> > ();
         break;
 
@@ -2536,7 +2566,7 @@ switch (yykind)
     static const signed char yydefact_[];
 
     // YYPGOTO[NTERM-NUM].
-    static const short yypgoto_[];
+    static const signed char yypgoto_[];
 
     // YYDEFGOTO[NTERM-NUM].
     static const unsigned char yydefgoto_[];
@@ -2561,7 +2591,7 @@ switch (yykind)
 
 #if YYDEBUG
     // YYRLINE[YYN] -- Source line where rule number YYN was defined.
-    static const unsigned char yyrline_[];
+    static const short yyrline_[];
     /// Report on the debug stream that the rule \a r is going to be reduced.
     virtual void yy_reduce_print_ (int r) const;
     /// Print the state stack on the debug stream.
@@ -2788,8 +2818,8 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 543,     ///< Last index in yytable_.
-      yynnts_ = 24,  ///< Number of nonterminal symbols.
+      yylast_ = 568,     ///< Last index in yytable_.
+      yynnts_ = 26,  ///< Number of nonterminal symbols.
       yyfinal_ = 6 ///< Termination state number.
     };
 
@@ -2963,6 +2993,10 @@ switch (yykind)
         value.copy< std::shared_ptr<ArrayTypeNode> > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_call: // call
+        value.copy< std::shared_ptr<CallStatementNode> > (YY_MOVE (that.value));
+        break;
+
       case symbol_kind::S_constant: // constant
         value.copy< std::shared_ptr<ConstantExpressionNode> > (YY_MOVE (that.value));
         break;
@@ -3020,6 +3054,7 @@ switch (yykind)
 
       case symbol_kind::S_array_element: // array_element
       case symbol_kind::S_array_indices: // array_indices
+      case symbol_kind::S_params: // params
         value.copy< std::vector<std::shared_ptr<ExpressionNode>> > (YY_MOVE (that.value));
         break;
 
@@ -3076,6 +3111,10 @@ switch (yykind)
 
       case symbol_kind::S_array_type: // array_type
         value.move< std::shared_ptr<ArrayTypeNode> > (YY_MOVE (s.value));
+        break;
+
+      case symbol_kind::S_call: // call
+        value.move< std::shared_ptr<CallStatementNode> > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_constant: // constant
@@ -3135,6 +3174,7 @@ switch (yykind)
 
       case symbol_kind::S_array_element: // array_element
       case symbol_kind::S_array_indices: // array_indices
+      case symbol_kind::S_params: // params
         value.move< std::vector<std::shared_ptr<ExpressionNode>> > (YY_MOVE (s.value));
         break;
 
@@ -3205,7 +3245,7 @@ switch (yykind)
 
 #line 17 "carlos.ypp"
 } // carlos
-#line 3209 "carlos.parser.h"
+#line 3249 "carlos.parser.h"
 
 
 

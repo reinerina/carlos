@@ -237,6 +237,10 @@ namespace carlos {
         value.YY_MOVE_OR_COPY< std::shared_ptr<ArrayTypeNode> > (YY_MOVE (that.value));
         break;
 
+      case symbol_kind::S_call: // call
+        value.YY_MOVE_OR_COPY< std::shared_ptr<CallStatementNode> > (YY_MOVE (that.value));
+        break;
+
       case symbol_kind::S_constant: // constant
         value.YY_MOVE_OR_COPY< std::shared_ptr<ConstantExpressionNode> > (YY_MOVE (that.value));
         break;
@@ -294,6 +298,7 @@ namespace carlos {
 
       case symbol_kind::S_array_element: // array_element
       case symbol_kind::S_array_indices: // array_indices
+      case symbol_kind::S_params: // params
         value.YY_MOVE_OR_COPY< std::vector<std::shared_ptr<ExpressionNode>> > (YY_MOVE (that.value));
         break;
 
@@ -334,6 +339,10 @@ namespace carlos {
 
       case symbol_kind::S_array_type: // array_type
         value.move< std::shared_ptr<ArrayTypeNode> > (YY_MOVE (that.value));
+        break;
+
+      case symbol_kind::S_call: // call
+        value.move< std::shared_ptr<CallStatementNode> > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_constant: // constant
@@ -393,6 +402,7 @@ namespace carlos {
 
       case symbol_kind::S_array_element: // array_element
       case symbol_kind::S_array_indices: // array_indices
+      case symbol_kind::S_params: // params
         value.move< std::vector<std::shared_ptr<ExpressionNode>> > (YY_MOVE (that.value));
         break;
 
@@ -433,6 +443,10 @@ namespace carlos {
 
       case symbol_kind::S_array_type: // array_type
         value.copy< std::shared_ptr<ArrayTypeNode> > (that.value);
+        break;
+
+      case symbol_kind::S_call: // call
+        value.copy< std::shared_ptr<CallStatementNode> > (that.value);
         break;
 
       case symbol_kind::S_constant: // constant
@@ -492,6 +506,7 @@ namespace carlos {
 
       case symbol_kind::S_array_element: // array_element
       case symbol_kind::S_array_indices: // array_indices
+      case symbol_kind::S_params: // params
         value.copy< std::vector<std::shared_ptr<ExpressionNode>> > (that.value);
         break;
 
@@ -531,6 +546,10 @@ namespace carlos {
 
       case symbol_kind::S_array_type: // array_type
         value.move< std::shared_ptr<ArrayTypeNode> > (that.value);
+        break;
+
+      case symbol_kind::S_call: // call
+        value.move< std::shared_ptr<CallStatementNode> > (that.value);
         break;
 
       case symbol_kind::S_constant: // constant
@@ -590,6 +609,7 @@ namespace carlos {
 
       case symbol_kind::S_array_element: // array_element
       case symbol_kind::S_array_indices: // array_indices
+      case symbol_kind::S_params: // params
         value.move< std::vector<std::shared_ptr<ExpressionNode>> > (that.value);
         break;
 
@@ -876,6 +896,10 @@ namespace carlos {
         yylhs.value.emplace< std::shared_ptr<ArrayTypeNode> > ();
         break;
 
+      case symbol_kind::S_call: // call
+        yylhs.value.emplace< std::shared_ptr<CallStatementNode> > ();
+        break;
+
       case symbol_kind::S_constant: // constant
         yylhs.value.emplace< std::shared_ptr<ConstantExpressionNode> > ();
         break;
@@ -933,6 +957,7 @@ namespace carlos {
 
       case symbol_kind::S_array_element: // array_element
       case symbol_kind::S_array_indices: // array_indices
+      case symbol_kind::S_params: // params
         yylhs.value.emplace< std::vector<std::shared_ptr<ExpressionNode>> > ();
         break;
 
@@ -957,532 +982,556 @@ namespace carlos {
           switch (yyn)
             {
   case 2: // program: entry
-#line 80 "carlos.ypp"
+#line 82 "carlos.ypp"
                  {
                 root = std::make_shared<ProgramNode>(std::move(yystack_[0].value.as < std::shared_ptr<EntryNode> > ()));
             }
-#line 965 "carlos.parser.cpp"
+#line 990 "carlos.parser.cpp"
     break;
 
   case 3: // entry: CA_ENTRY statement_compound
-#line 84 "carlos.ypp"
+#line 86 "carlos.ypp"
                                      {
                 yylhs.value.as < std::shared_ptr<EntryNode> > () = std::make_shared<EntryNode>(std::move(yystack_[0].value.as < std::shared_ptr<StatementsNode> > ()));
             }
-#line 973 "carlos.parser.cpp"
+#line 998 "carlos.parser.cpp"
     break;
 
   case 4: // statement_compound: CA_LBRACE statements CA_RBRACE
-#line 89 "carlos.ypp"
+#line 91 "carlos.ypp"
                                                      { yylhs.value.as < std::shared_ptr<StatementsNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<StatementsNode> > ()); }
-#line 979 "carlos.parser.cpp"
+#line 1004 "carlos.parser.cpp"
     break;
 
   case 5: // statements: statements statement
-#line 92 "carlos.ypp"
+#line 94 "carlos.ypp"
                                    {
                auto temp = std::move(yystack_[1].value.as < std::shared_ptr<StatementsNode> > ());
                temp->statements.push_back(std::move(yystack_[0].value.as < std::shared_ptr<StatementNode> > ()));
                yylhs.value.as < std::shared_ptr<StatementsNode> > () = std::move(temp);
             }
-#line 989 "carlos.parser.cpp"
+#line 1014 "carlos.parser.cpp"
     break;
 
   case 6: // statements: statements statement_compound
-#line 97 "carlos.ypp"
+#line 99 "carlos.ypp"
                                             {
                auto temp = std::move(yystack_[1].value.as < std::shared_ptr<StatementsNode> > ());
                temp->statements.push_back(std::move(yystack_[0].value.as < std::shared_ptr<StatementsNode> > ()));
                yylhs.value.as < std::shared_ptr<StatementsNode> > () = std::move(temp);
             }
-#line 999 "carlos.parser.cpp"
+#line 1024 "carlos.parser.cpp"
     break;
 
   case 7: // statements: %empty
-#line 102 "carlos.ypp"
+#line 104 "carlos.ypp"
                           { if (!yylhs.value.as < std::shared_ptr<StatementsNode> > ()) yylhs.value.as < std::shared_ptr<StatementsNode> > () = std::make_shared<StatementsNode>(); }
-#line 1005 "carlos.parser.cpp"
+#line 1030 "carlos.parser.cpp"
     break;
 
   case 12: // statement: declaration semicolon
-#line 113 "carlos.ypp"
+#line 115 "carlos.ypp"
                                    { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<DeclarationStatementNode> > ()); }
-#line 1011 "carlos.parser.cpp"
+#line 1036 "carlos.parser.cpp"
     break;
 
   case 13: // statement: expression semicolon
-#line 114 "carlos.ypp"
-                                   { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::make_shared<ExpressionStatementNode>(std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1017 "carlos.parser.cpp"
-    break;
-
-  case 14: // statement: if opt_semicolon
-#line 115 "carlos.ypp"
-                               { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<IfStatementNode> > ()); }
-#line 1023 "carlos.parser.cpp"
-    break;
-
-  case 15: // statement: while opt_semicolon
 #line 116 "carlos.ypp"
-                                  { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<WhileStatementNode> > ()); }
-#line 1029 "carlos.parser.cpp"
+                                   { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::make_shared<ExpressionStatementNode>(std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1042 "carlos.parser.cpp"
     break;
 
-  case 16: // statement: for opt_semicolon
+  case 14: // statement: call semicolon
 #line 117 "carlos.ypp"
-                                { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ForStatementNode> > ()); }
-#line 1035 "carlos.parser.cpp"
+                             { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<CallStatementNode> > ()); }
+#line 1048 "carlos.parser.cpp"
     break;
 
-  case 17: // statement: break semicolon
+  case 15: // statement: if opt_semicolon
 #line 118 "carlos.ypp"
-                              { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ControlStatementNode> > ()); }
-#line 1041 "carlos.parser.cpp"
+                               { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<IfStatementNode> > ()); }
+#line 1054 "carlos.parser.cpp"
     break;
 
-  case 18: // statement: continue semicolon
+  case 16: // statement: while opt_semicolon
 #line 119 "carlos.ypp"
-                                 { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ControlStatementNode> > ()); }
-#line 1047 "carlos.parser.cpp"
+                                  { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<WhileStatementNode> > ()); }
+#line 1060 "carlos.parser.cpp"
     break;
 
-  case 19: // statement: return semicolon
+  case 17: // statement: for opt_semicolon
 #line 120 "carlos.ypp"
-                               { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ReturnStatementNode> > ()); }
-#line 1053 "carlos.parser.cpp"
+                                { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ForStatementNode> > ()); }
+#line 1066 "carlos.parser.cpp"
     break;
 
-  case 20: // type: CA_BOOL
+  case 18: // statement: break semicolon
+#line 121 "carlos.ypp"
+                              { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ControlStatementNode> > ()); }
+#line 1072 "carlos.parser.cpp"
+    break;
+
+  case 19: // statement: continue semicolon
+#line 122 "carlos.ypp"
+                                 { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ControlStatementNode> > ()); }
+#line 1078 "carlos.parser.cpp"
+    break;
+
+  case 20: // statement: return semicolon
 #line 123 "carlos.ypp"
-                { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::make_shared<BasicTypeNode>("bool"); }
-#line 1059 "carlos.parser.cpp"
+                               { yylhs.value.as < std::shared_ptr<StatementNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ReturnStatementNode> > ()); }
+#line 1084 "carlos.parser.cpp"
     break;
 
-  case 21: // type: CA_INT32
-#line 124 "carlos.ypp"
-                       { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::make_shared<BasicTypeNode>("i32"); }
-#line 1065 "carlos.parser.cpp"
-    break;
-
-  case 22: // type: CA_FLOAT32
-#line 125 "carlos.ypp"
-                         { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::make_shared<BasicTypeNode>("f32"); }
-#line 1071 "carlos.parser.cpp"
-    break;
-
-  case 23: // type: CA_CHAR
+  case 21: // type: CA_BOOL
 #line 126 "carlos.ypp"
-                      { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::make_shared<BasicTypeNode>("char"); }
-#line 1077 "carlos.parser.cpp"
+                { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::make_shared<BasicTypeNode>("bool"); }
+#line 1090 "carlos.parser.cpp"
     break;
 
-  case 24: // type: array_type
+  case 22: // type: CA_INT32
 #line 127 "carlos.ypp"
-                         { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::move(yystack_[0].value.as < std::shared_ptr<ArrayTypeNode> > ()); }
-#line 1083 "carlos.parser.cpp"
+                       { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::make_shared<BasicTypeNode>("i32"); }
+#line 1096 "carlos.parser.cpp"
     break;
 
-  case 25: // constant: CA_INT_CONST
+  case 23: // type: CA_FLOAT32
+#line 128 "carlos.ypp"
+                         { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::make_shared<BasicTypeNode>("f32"); }
+#line 1102 "carlos.parser.cpp"
+    break;
+
+  case 24: // type: CA_CHAR
+#line 129 "carlos.ypp"
+                      { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::make_shared<BasicTypeNode>("char"); }
+#line 1108 "carlos.parser.cpp"
+    break;
+
+  case 25: // type: array_type
 #line 130 "carlos.ypp"
-                         { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(yystack_[0].value.as < int > ()); }
-#line 1089 "carlos.parser.cpp"
+                         { yylhs.value.as < std::shared_ptr<TypeNode> > () = std::move(yystack_[0].value.as < std::shared_ptr<ArrayTypeNode> > ()); }
+#line 1114 "carlos.parser.cpp"
     break;
 
-  case 26: // constant: CA_FLOAT_CONST
-#line 131 "carlos.ypp"
-                             { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(yystack_[0].value.as < float > ()); }
-#line 1095 "carlos.parser.cpp"
-    break;
-
-  case 27: // constant: CA_CHAR_CONST
-#line 132 "carlos.ypp"
-                            { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(yystack_[0].value.as < char > ()); }
-#line 1101 "carlos.parser.cpp"
-    break;
-
-  case 28: // constant: CA_TRUE
+  case 26: // constant: CA_INT_CONST
 #line 133 "carlos.ypp"
-                      { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(true); }
-#line 1107 "carlos.parser.cpp"
+                         { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(yystack_[0].value.as < int > ()); }
+#line 1120 "carlos.parser.cpp"
     break;
 
-  case 29: // constant: CA_FALSE
+  case 27: // constant: CA_FLOAT_CONST
 #line 134 "carlos.ypp"
-                       { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(false); }
-#line 1113 "carlos.parser.cpp"
+                             { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(yystack_[0].value.as < float > ()); }
+#line 1126 "carlos.parser.cpp"
     break;
 
-  case 30: // array_type: CA_LBRACKET type CA_SEMICOLON expression CA_RBRACKET
+  case 28: // constant: CA_CHAR_CONST
+#line 135 "carlos.ypp"
+                            { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(yystack_[0].value.as < char > ()); }
+#line 1132 "carlos.parser.cpp"
+    break;
+
+  case 29: // constant: CA_TRUE
 #line 136 "carlos.ypp"
+                      { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(true); }
+#line 1138 "carlos.parser.cpp"
+    break;
+
+  case 30: // constant: CA_FALSE
+#line 137 "carlos.ypp"
+                       { yylhs.value.as < std::shared_ptr<ConstantExpressionNode> > () = std::make_shared<ConstantExpressionNode>(false); }
+#line 1144 "carlos.parser.cpp"
+    break;
+
+  case 31: // array_type: CA_LBRACKET type CA_SEMICOLON expression CA_RBRACKET
+#line 139 "carlos.ypp"
                                                                    {
                 yylhs.value.as < std::shared_ptr<ArrayTypeNode> > () = std::make_shared<ArrayTypeNode>(std::move(yystack_[3].value.as < std::shared_ptr<TypeNode> > ()), std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ()));
             }
-#line 1121 "carlos.parser.cpp"
+#line 1152 "carlos.parser.cpp"
     break;
 
-  case 31: // array_element: array_element CA_COMMA expression
-#line 141 "carlos.ypp"
+  case 32: // array_element: array_element CA_COMMA expression
+#line 144 "carlos.ypp"
                                                    { auto temp = std::move(yystack_[2].value.as < std::vector<std::shared_ptr<ExpressionNode>> > ()); temp.push_back(std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); yylhs.value.as < std::vector<std::shared_ptr<ExpressionNode>> > () = std::move(temp); }
-#line 1127 "carlos.parser.cpp"
+#line 1158 "carlos.parser.cpp"
     break;
 
-  case 32: // array_element: expression
-#line 142 "carlos.ypp"
-                         { yylhs.value.as < std::vector<std::shared_ptr<ExpressionNode>> > ().push_back(std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1133 "carlos.parser.cpp"
-    break;
-
-  case 33: // array_expression: CA_LBRACKET expression CA_SEMICOLON expression CA_RBRACKET
+  case 33: // array_element: expression
 #line 145 "carlos.ypp"
+                         { yylhs.value.as < std::vector<std::shared_ptr<ExpressionNode>> > ().push_back(std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1164 "carlos.parser.cpp"
+    break;
+
+  case 34: // array_expression: CA_LBRACKET expression CA_SEMICOLON expression CA_RBRACKET
+#line 148 "carlos.ypp"
                                                                                {
                 yylhs.value.as < std::shared_ptr<ArrayExpressionNode> > () = std::make_shared<ArrayExpressionNode>(std::move(yystack_[3].value.as < std::shared_ptr<ExpressionNode> > ()), std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ()));
             }
-#line 1141 "carlos.parser.cpp"
+#line 1172 "carlos.parser.cpp"
     break;
 
-  case 34: // array_expression: CA_LBRACKET array_element CA_RBRACKET
-#line 148 "carlos.ypp"
+  case 35: // array_expression: CA_LBRACKET array_element CA_RBRACKET
+#line 151 "carlos.ypp"
                                                     {
                 yylhs.value.as < std::shared_ptr<ArrayExpressionNode> > () = std::make_shared<ArrayExpressionNode>(std::move(yystack_[1].value.as < std::vector<std::shared_ptr<ExpressionNode>> > ()));
             }
-#line 1149 "carlos.parser.cpp"
+#line 1180 "carlos.parser.cpp"
     break;
 
-  case 35: // array_indices: array_indices CA_LBRACKET expression CA_RBRACKET
-#line 153 "carlos.ypp"
+  case 36: // array_indices: array_indices CA_LBRACKET expression CA_RBRACKET
+#line 156 "carlos.ypp"
                                                                   { auto temp = std::move(yystack_[3].value.as < std::vector<std::shared_ptr<ExpressionNode>> > ()); temp.push_back(std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ())); yylhs.value.as < std::vector<std::shared_ptr<ExpressionNode>> > () = std::move(temp); }
-#line 1155 "carlos.parser.cpp"
+#line 1186 "carlos.parser.cpp"
     break;
 
-  case 36: // array_indices: CA_LBRACKET expression CA_RBRACKET
-#line 154 "carlos.ypp"
-                                                 { yylhs.value.as < std::vector<std::shared_ptr<ExpressionNode>> > ().push_back(std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1161 "carlos.parser.cpp"
-    break;
-
-  case 37: // array_access: CA_IDENTIFIER array_indices
+  case 37: // array_indices: CA_LBRACKET expression CA_RBRACKET
 #line 157 "carlos.ypp"
+                                                 { yylhs.value.as < std::vector<std::shared_ptr<ExpressionNode>> > ().push_back(std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1192 "carlos.parser.cpp"
+    break;
+
+  case 38: // array_access: CA_IDENTIFIER array_indices
+#line 160 "carlos.ypp"
                                             {
                 auto identifier = std::make_shared<IdentifierExpressionNode>(yystack_[1].value.as < std::string > ());
                 yylhs.value.as < std::shared_ptr<ArrayAccessExpressionNode> > () = std::make_shared<ArrayAccessExpressionNode>(std::move(identifier), std::move(yystack_[0].value.as < std::vector<std::shared_ptr<ExpressionNode>> > ()));
             }
-#line 1170 "carlos.parser.cpp"
+#line 1201 "carlos.parser.cpp"
     break;
 
-  case 38: // declaration: CA_LET CA_IDENTIFIER CA_COLON type
-#line 163 "carlos.ypp"
+  case 39: // declaration: CA_LET CA_IDENTIFIER CA_COLON type
+#line 166 "carlos.ypp"
                                                   {
                 auto identifier = std::make_shared<IdentifierExpressionNode>(yystack_[2].value.as < std::string > ());
                 yylhs.value.as < std::shared_ptr<DeclarationStatementNode> > () = std::make_shared<DeclarationStatementNode>(std::move(identifier), std::move(yystack_[0].value.as < std::shared_ptr<TypeNode> > ()), false, nullptr);
             }
-#line 1179 "carlos.parser.cpp"
+#line 1210 "carlos.parser.cpp"
     break;
 
-  case 39: // declaration: CA_LET CA_MUT CA_IDENTIFIER CA_COLON type
-#line 167 "carlos.ypp"
+  case 40: // declaration: CA_LET CA_MUT CA_IDENTIFIER CA_COLON type
+#line 170 "carlos.ypp"
                                                         {
                 auto identifier = std::make_shared<IdentifierExpressionNode>(yystack_[2].value.as < std::string > ());
                 yylhs.value.as < std::shared_ptr<DeclarationStatementNode> > () = std::make_shared<DeclarationStatementNode>(std::move(identifier), std::move(yystack_[0].value.as < std::shared_ptr<TypeNode> > ()), true, nullptr);
             }
-#line 1188 "carlos.parser.cpp"
+#line 1219 "carlos.parser.cpp"
     break;
 
-  case 40: // declaration: CA_LET CA_IDENTIFIER CA_COLON type CA_ASSIGN expression
-#line 171 "carlos.ypp"
+  case 41: // declaration: CA_LET CA_IDENTIFIER CA_COLON type CA_ASSIGN expression
+#line 174 "carlos.ypp"
                                                                       {
                 auto identifier = std::make_shared<IdentifierExpressionNode>(yystack_[4].value.as < std::string > ());
                 yylhs.value.as < std::shared_ptr<DeclarationStatementNode> > () = std::make_shared<DeclarationStatementNode>(std::move(identifier), std::move(yystack_[2].value.as < std::shared_ptr<TypeNode> > ()), false, std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ()));
             }
-#line 1197 "carlos.parser.cpp"
+#line 1228 "carlos.parser.cpp"
     break;
 
-  case 41: // declaration: CA_LET CA_MUT CA_IDENTIFIER CA_COLON type CA_ASSIGN expression
-#line 175 "carlos.ypp"
+  case 42: // declaration: CA_LET CA_MUT CA_IDENTIFIER CA_COLON type CA_ASSIGN expression
+#line 178 "carlos.ypp"
                                                                              {
                 auto identifier = std::make_shared<IdentifierExpressionNode>(yystack_[4].value.as < std::string > ());
                 yylhs.value.as < std::shared_ptr<DeclarationStatementNode> > () = std::make_shared<DeclarationStatementNode>(std::move(identifier), std::move(yystack_[2].value.as < std::shared_ptr<TypeNode> > ()), true, std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ()));
             }
-#line 1206 "carlos.parser.cpp"
+#line 1237 "carlos.parser.cpp"
     break;
 
-  case 42: // declaration: CA_LET CA_IDENTIFIER CA_ASSIGN expression
-#line 179 "carlos.ypp"
+  case 43: // declaration: CA_LET CA_IDENTIFIER CA_ASSIGN expression
+#line 182 "carlos.ypp"
                                                         {
                 auto identifier = std::make_shared<IdentifierExpressionNode>(yystack_[2].value.as < std::string > ());
                 yylhs.value.as < std::shared_ptr<DeclarationStatementNode> > () = std::make_shared<DeclarationStatementNode>(std::move(identifier), nullptr, false, std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ()));
             }
-#line 1215 "carlos.parser.cpp"
+#line 1246 "carlos.parser.cpp"
     break;
 
-  case 43: // declaration: CA_LET CA_MUT CA_IDENTIFIER CA_ASSIGN expression
-#line 183 "carlos.ypp"
+  case 44: // declaration: CA_LET CA_MUT CA_IDENTIFIER CA_ASSIGN expression
+#line 186 "carlos.ypp"
                                                                {
                 auto identifier = std::make_shared<IdentifierExpressionNode>(yystack_[2].value.as < std::string > ());
                 yylhs.value.as < std::shared_ptr<DeclarationStatementNode> > () = std::make_shared<DeclarationStatementNode>(std::move(identifier), nullptr, true, std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ()));
             }
-#line 1224 "carlos.parser.cpp"
+#line 1255 "carlos.parser.cpp"
     break;
 
-  case 44: // expression: constant
-#line 189 "carlos.ypp"
-                       { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::move(yystack_[0].value.as < std::shared_ptr<ConstantExpressionNode> > ()); }
-#line 1230 "carlos.parser.cpp"
-    break;
-
-  case 45: // expression: CA_IDENTIFIER
-#line 190 "carlos.ypp"
-                            { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<IdentifierExpressionNode>(yystack_[0].value.as < std::string > ()); }
-#line 1236 "carlos.parser.cpp"
-    break;
-
-  case 46: // expression: array_expression
-#line 191 "carlos.ypp"
-                               { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::move(yystack_[0].value.as < std::shared_ptr<ArrayExpressionNode> > ()); }
-#line 1242 "carlos.parser.cpp"
-    break;
-
-  case 47: // expression: array_access
+  case 45: // expression: constant
 #line 192 "carlos.ypp"
-                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::move(yystack_[0].value.as < std::shared_ptr<ArrayAccessExpressionNode> > ()); }
-#line 1248 "carlos.parser.cpp"
+                       { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::move(yystack_[0].value.as < std::shared_ptr<ConstantExpressionNode> > ()); }
+#line 1261 "carlos.parser.cpp"
     break;
 
-  case 48: // expression: expression CA_PLUS expression
+  case 46: // expression: CA_IDENTIFIER
 #line 193 "carlos.ypp"
-                                            { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "+", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1254 "carlos.parser.cpp"
+                            { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<IdentifierExpressionNode>(yystack_[0].value.as < std::string > ()); }
+#line 1267 "carlos.parser.cpp"
     break;
 
-  case 49: // expression: expression CA_MINUS expression
+  case 47: // expression: array_expression
 #line 194 "carlos.ypp"
-                                             { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "-", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1260 "carlos.parser.cpp"
+                               { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::move(yystack_[0].value.as < std::shared_ptr<ArrayExpressionNode> > ()); }
+#line 1273 "carlos.parser.cpp"
     break;
 
-  case 50: // expression: expression CA_MUL expression
+  case 48: // expression: array_access
 #line 195 "carlos.ypp"
-                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "*", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1266 "carlos.parser.cpp"
+                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::move(yystack_[0].value.as < std::shared_ptr<ArrayAccessExpressionNode> > ()); }
+#line 1279 "carlos.parser.cpp"
     break;
 
-  case 51: // expression: expression CA_DIV expression
+  case 49: // expression: expression CA_PLUS expression
 #line 196 "carlos.ypp"
-                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "/", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1272 "carlos.parser.cpp"
+                                            { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "+", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1285 "carlos.parser.cpp"
     break;
 
-  case 52: // expression: expression CA_MOD expression
+  case 50: // expression: expression CA_MINUS expression
 #line 197 "carlos.ypp"
-                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "%", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1278 "carlos.parser.cpp"
+                                             { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "-", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1291 "carlos.parser.cpp"
     break;
 
-  case 53: // expression: expression CA_AND expression
+  case 51: // expression: expression CA_MUL expression
 #line 198 "carlos.ypp"
-                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "&&", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1284 "carlos.parser.cpp"
+                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "*", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1297 "carlos.parser.cpp"
     break;
 
-  case 54: // expression: expression CA_OR expression
+  case 52: // expression: expression CA_DIV expression
 #line 199 "carlos.ypp"
-                                          { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "||", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1290 "carlos.parser.cpp"
+                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "/", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1303 "carlos.parser.cpp"
     break;
 
-  case 55: // expression: expression CA_EQ expression
+  case 53: // expression: expression CA_MOD expression
 #line 200 "carlos.ypp"
-                                          { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "==", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1296 "carlos.parser.cpp"
+                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "%", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1309 "carlos.parser.cpp"
     break;
 
-  case 56: // expression: expression CA_NEQ expression
+  case 54: // expression: expression CA_AND expression
 #line 201 "carlos.ypp"
-                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "!=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1302 "carlos.parser.cpp"
+                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "&&", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1315 "carlos.parser.cpp"
     break;
 
-  case 57: // expression: expression CA_LT expression
+  case 55: // expression: expression CA_OR expression
 #line 202 "carlos.ypp"
-                                          { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "<", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1308 "carlos.parser.cpp"
+                                          { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "||", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1321 "carlos.parser.cpp"
     break;
 
-  case 58: // expression: expression CA_GT expression
+  case 56: // expression: expression CA_EQ expression
 #line 203 "carlos.ypp"
-                                          { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), ">", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1314 "carlos.parser.cpp"
+                                          { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "==", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1327 "carlos.parser.cpp"
     break;
 
-  case 59: // expression: expression CA_LTE expression
+  case 57: // expression: expression CA_NEQ expression
 #line 204 "carlos.ypp"
-                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "<=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1320 "carlos.parser.cpp"
+                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "!=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1333 "carlos.parser.cpp"
     break;
 
-  case 60: // expression: expression CA_GTE expression
+  case 58: // expression: expression CA_LT expression
 #line 205 "carlos.ypp"
-                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), ">=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1326 "carlos.parser.cpp"
+                                          { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "<", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1339 "carlos.parser.cpp"
     break;
 
-  case 61: // expression: expression CA_RANGE expression
+  case 59: // expression: expression CA_GT expression
 #line 206 "carlos.ypp"
-                                             { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "..", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1332 "carlos.parser.cpp"
+                                          { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), ">", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1345 "carlos.parser.cpp"
     break;
 
-  case 62: // expression: expression CA_RANGE_INCLUSIVE expression
+  case 60: // expression: expression CA_LTE expression
 #line 207 "carlos.ypp"
-                                                       { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "..=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1338 "carlos.parser.cpp"
+                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "<=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1351 "carlos.parser.cpp"
     break;
 
-  case 63: // expression: expression CA_ASSIGN expression
+  case 61: // expression: expression CA_GTE expression
 #line 208 "carlos.ypp"
-                                              { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1344 "carlos.parser.cpp"
+                                           { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), ">=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1357 "carlos.parser.cpp"
     break;
 
-  case 64: // expression: expression CA_PLUS_ASSIGN expression
+  case 62: // expression: expression CA_RANGE expression
 #line 209 "carlos.ypp"
-                                                   { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "+=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1350 "carlos.parser.cpp"
+                                             { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "..", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1363 "carlos.parser.cpp"
     break;
 
-  case 65: // expression: expression CA_MINUS_ASSIGN expression
+  case 63: // expression: expression CA_RANGE_INCLUSIVE expression
 #line 210 "carlos.ypp"
-                                                    { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "-=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1356 "carlos.parser.cpp"
+                                                       { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "..=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1369 "carlos.parser.cpp"
     break;
 
-  case 66: // expression: expression CA_MUL_ASSIGN expression
+  case 64: // expression: expression CA_ASSIGN expression
 #line 211 "carlos.ypp"
-                                                  { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "*=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1362 "carlos.parser.cpp"
+                                              { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1375 "carlos.parser.cpp"
     break;
 
-  case 67: // expression: expression CA_DIV_ASSIGN expression
+  case 65: // expression: expression CA_PLUS_ASSIGN expression
 #line 212 "carlos.ypp"
-                                                  { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "/=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1368 "carlos.parser.cpp"
+                                                   { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "+=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1381 "carlos.parser.cpp"
     break;
 
-  case 68: // expression: expression CA_MOD_ASSIGN expression
+  case 66: // expression: expression CA_MINUS_ASSIGN expression
 #line 213 "carlos.ypp"
-                                                  { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "%=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1374 "carlos.parser.cpp"
+                                                    { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "-=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1387 "carlos.parser.cpp"
     break;
 
-  case 69: // expression: expression CA_AS type
+  case 67: // expression: expression CA_MUL_ASSIGN expression
 #line 214 "carlos.ypp"
-                                    { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<CastExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), std::move(yystack_[0].value.as < std::shared_ptr<TypeNode> > ())); }
-#line 1380 "carlos.parser.cpp"
+                                                  { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "*=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1393 "carlos.parser.cpp"
     break;
 
-  case 70: // expression: CA_LPAREN expression CA_RPAREN
+  case 68: // expression: expression CA_DIV_ASSIGN expression
 #line 215 "carlos.ypp"
-                                             { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ()); }
-#line 1386 "carlos.parser.cpp"
+                                                  { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "/=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1399 "carlos.parser.cpp"
     break;
 
-  case 71: // expression: CA_NOT expression
+  case 69: // expression: expression CA_MOD_ASSIGN expression
 #line 216 "carlos.ypp"
-                                { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<UnaryExpressionNode>("!", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1392 "carlos.parser.cpp"
+                                                  { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<BinaryExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), "%=", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1405 "carlos.parser.cpp"
     break;
 
-  case 72: // expression: CA_MINUS expression
+  case 70: // expression: expression CA_AS type
 #line 217 "carlos.ypp"
-                                               { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<UnaryExpressionNode>("-", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1398 "carlos.parser.cpp"
+                                    { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<CastExpressionNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), std::move(yystack_[0].value.as < std::shared_ptr<TypeNode> > ())); }
+#line 1411 "carlos.parser.cpp"
     break;
 
-  case 73: // expression: CA_PLUS expression
+  case 71: // expression: CA_LPAREN expression CA_RPAREN
 #line 218 "carlos.ypp"
-                                              { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<UnaryExpressionNode>("+", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1404 "carlos.parser.cpp"
+                                             { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ()); }
+#line 1417 "carlos.parser.cpp"
     break;
 
-  case 74: // if: CA_IF expression statement_compound else
+  case 72: // expression: CA_NOT expression
+#line 219 "carlos.ypp"
+                                { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<UnaryExpressionNode>("!", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1423 "carlos.parser.cpp"
+    break;
+
+  case 73: // expression: CA_MINUS expression
+#line 220 "carlos.ypp"
+                                               { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<UnaryExpressionNode>("-", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1429 "carlos.parser.cpp"
+    break;
+
+  case 74: // expression: CA_PLUS expression
 #line 221 "carlos.ypp"
+                                              { yylhs.value.as < std::shared_ptr<ExpressionNode> > () = std::make_shared<UnaryExpressionNode>("+", std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1435 "carlos.parser.cpp"
+    break;
+
+  case 75: // params: params CA_COMMA expression
+#line 224 "carlos.ypp"
+                                     { auto temp = std::move(yystack_[2].value.as < std::vector<std::shared_ptr<ExpressionNode>> > ()); temp.push_back(std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); yylhs.value.as < std::vector<std::shared_ptr<ExpressionNode>> > () = std::move(temp); }
+#line 1441 "carlos.parser.cpp"
+    break;
+
+  case 76: // params: expression
+#line 225 "carlos.ypp"
+                         { yylhs.value.as < std::vector<std::shared_ptr<ExpressionNode>> > ().push_back(std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
+#line 1447 "carlos.parser.cpp"
+    break;
+
+  case 77: // call: CA_IDENTIFIER CA_LPAREN params CA_RPAREN
+#line 228 "carlos.ypp"
+                                                 { yylhs.value.as < std::shared_ptr<CallStatementNode> > () = std::make_shared<CallStatementNode>(std::move(yystack_[3].value.as < std::string > ()), std::move(yystack_[1].value.as < std::vector<std::shared_ptr<ExpressionNode>> > ())); }
+#line 1453 "carlos.parser.cpp"
+    break;
+
+  case 78: // if: CA_IF expression statement_compound else
+#line 231 "carlos.ypp"
                                                {
                 yylhs.value.as < std::shared_ptr<IfStatementNode> > () = std::make_shared<IfStatementNode>(std::move(yystack_[2].value.as < std::shared_ptr<ExpressionNode> > ()), std::move(yystack_[1].value.as < std::shared_ptr<StatementsNode> > ()), std::move(yystack_[0].value.as < std::shared_ptr<IfStatementNode> > ()));
             }
-#line 1412 "carlos.parser.cpp"
+#line 1461 "carlos.parser.cpp"
     break;
 
-  case 75: // else: CA_ELSE if
-#line 226 "carlos.ypp"
+  case 79: // else: CA_ELSE if
+#line 236 "carlos.ypp"
                    { yylhs.value.as < std::shared_ptr<IfStatementNode> > () = std::move(yystack_[0].value.as < std::shared_ptr<IfStatementNode> > ()); }
-#line 1418 "carlos.parser.cpp"
+#line 1467 "carlos.parser.cpp"
     break;
 
-  case 76: // else: CA_ELSE statement_compound
-#line 227 "carlos.ypp"
+  case 80: // else: CA_ELSE statement_compound
+#line 237 "carlos.ypp"
                                          {
                 yylhs.value.as < std::shared_ptr<IfStatementNode> > () = std::make_shared<IfStatementNode>(nullptr, std::move(yystack_[0].value.as < std::shared_ptr<StatementsNode> > ()), nullptr);
             }
-#line 1426 "carlos.parser.cpp"
+#line 1475 "carlos.parser.cpp"
     break;
 
-  case 77: // else: %empty
-#line 230 "carlos.ypp"
+  case 81: // else: %empty
+#line 240 "carlos.ypp"
                           { yylhs.value.as < std::shared_ptr<IfStatementNode> > () = nullptr; }
-#line 1432 "carlos.parser.cpp"
+#line 1481 "carlos.parser.cpp"
     break;
 
-  case 78: // while: CA_WHILE expression statement_compound
-#line 233 "carlos.ypp"
+  case 82: // while: CA_WHILE expression statement_compound
+#line 243 "carlos.ypp"
                                                 {
                 yylhs.value.as < std::shared_ptr<WhileStatementNode> > () = std::make_shared<WhileStatementNode>(std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ()), std::move(yystack_[0].value.as < std::shared_ptr<StatementsNode> > ()));
             }
-#line 1440 "carlos.parser.cpp"
+#line 1489 "carlos.parser.cpp"
     break;
 
-  case 79: // for: CA_FOR CA_IDENTIFIER CA_IN expression statement_compound
-#line 238 "carlos.ypp"
+  case 83: // for: CA_FOR CA_IDENTIFIER CA_IN expression statement_compound
+#line 248 "carlos.ypp"
                                                                 {
                 auto identifier = std::make_shared<IdentifierExpressionNode>(yystack_[3].value.as < std::string > ());
                 yylhs.value.as < std::shared_ptr<ForStatementNode> > () = std::make_shared<ForStatementNode>(std::move(identifier), false, std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ()), std::move(yystack_[0].value.as < std::shared_ptr<StatementsNode> > ()));
             }
-#line 1449 "carlos.parser.cpp"
+#line 1498 "carlos.parser.cpp"
     break;
 
-  case 80: // for: CA_FOR CA_MUT CA_IDENTIFIER CA_IN expression statement_compound
-#line 242 "carlos.ypp"
+  case 84: // for: CA_FOR CA_MUT CA_IDENTIFIER CA_IN expression statement_compound
+#line 252 "carlos.ypp"
                                                                               {
                 auto identifier = std::make_shared<IdentifierExpressionNode>(yystack_[3].value.as < std::string > ());
                 yylhs.value.as < std::shared_ptr<ForStatementNode> > () = std::make_shared<ForStatementNode>(std::move(identifier), true, std::move(yystack_[1].value.as < std::shared_ptr<ExpressionNode> > ()), std::move(yystack_[0].value.as < std::shared_ptr<StatementsNode> > ()));
             }
-#line 1458 "carlos.parser.cpp"
+#line 1507 "carlos.parser.cpp"
     break;
 
-  case 81: // break: CA_BREAK
-#line 248 "carlos.ypp"
+  case 85: // break: CA_BREAK
+#line 258 "carlos.ypp"
                   { yylhs.value.as < std::shared_ptr<ControlStatementNode> > () = std::make_shared<ControlStatementNode>("break"); }
-#line 1464 "carlos.parser.cpp"
+#line 1513 "carlos.parser.cpp"
     break;
 
-  case 82: // continue: CA_CONTINUE
-#line 251 "carlos.ypp"
+  case 86: // continue: CA_CONTINUE
+#line 261 "carlos.ypp"
                         { yylhs.value.as < std::shared_ptr<ControlStatementNode> > () = std::make_shared<ControlStatementNode>("continue"); }
-#line 1470 "carlos.parser.cpp"
+#line 1519 "carlos.parser.cpp"
     break;
 
-  case 83: // return: CA_RETURN expression
-#line 254 "carlos.ypp"
+  case 87: // return: CA_RETURN expression
+#line 264 "carlos.ypp"
                                { yylhs.value.as < std::shared_ptr<ReturnStatementNode> > () = std::make_shared<ReturnStatementNode>(std::move(yystack_[0].value.as < std::shared_ptr<ExpressionNode> > ())); }
-#line 1476 "carlos.parser.cpp"
+#line 1525 "carlos.parser.cpp"
     break;
 
-  case 84: // return: CA_RETURN
-#line 255 "carlos.ypp"
+  case 88: // return: CA_RETURN
+#line 265 "carlos.ypp"
                         { yylhs.value.as < std::shared_ptr<ReturnStatementNode> > () = std::make_shared<ReturnStatementNode>(nullptr); }
-#line 1482 "carlos.parser.cpp"
+#line 1531 "carlos.parser.cpp"
     break;
 
 
-#line 1486 "carlos.parser.cpp"
+#line 1535 "carlos.parser.cpp"
 
             default:
               break;
@@ -1834,147 +1883,156 @@ namespace carlos {
   }
 
 
-  const signed char CarlosParser::yypact_ninf_ = -85;
+  const signed char CarlosParser::yypact_ninf_ = -88;
 
   const signed char CarlosParser::yytable_ninf_ = -1;
 
   const short
   CarlosParser::yypact_[] =
   {
-      12,   -10,    34,   -85,   -85,   -85,   -85,    88,     7,    52,
-      52,    52,     9,   -85,   -85,   -85,   -85,    52,    52,    52,
-      52,   -85,    52,   -85,   -85,   -85,   -22,   -85,   -85,   -85,
-     -85,   -85,     3,   132,     3,     3,     3,     3,     3,     3,
-     -20,   -15,   428,   169,   169,   -18,    32,   -85,   -85,   -85,
-     206,   -36,   243,    52,    21,   -85,    40,    16,    52,    52,
-      52,    52,    52,    52,    52,    52,    52,    52,    52,    52,
-      52,    52,    52,    52,    52,    52,    52,    52,    52,    40,
-      40,   -85,   -85,   -85,    40,    40,    40,    37,    52,    16,
-      72,   -85,    69,    52,   -85,    52,   -85,    52,   280,    52,
-     -85,   -85,   -85,   -85,   -85,    16,   -85,   -85,    77,    77,
-      73,    73,    73,    -8,   482,   498,   498,    97,    97,    97,
-      97,   428,   428,   428,   428,   428,   428,   465,   465,    52,
-      16,   428,    51,    -1,   -85,    52,   169,   428,   317,   -85,
-     354,    54,   428,    59,    52,   -85,   -85,   169,   -85,   -85,
-     -85,    52,    52,   428,   -85,   391,   428,   -85
+      18,   -31,    17,   -88,   -88,   -88,   -88,    98,     9,   140,
+     140,   140,    10,   -88,   -88,   -88,   -88,   140,   140,   140,
+     140,   -88,   140,   -88,   -88,   -88,   -37,   -88,   -88,   -88,
+     -88,   -88,   -17,   182,   -17,   -17,   -17,   -17,   -17,   -17,
+     -17,   -30,   -20,    19,   478,   219,   219,   -25,    61,   -88,
+     -88,   -88,   256,   -36,   293,   140,   140,    24,   -88,    42,
+      16,   140,   140,   140,   140,   140,   140,   140,   140,   140,
+     140,   140,   140,   140,   140,   140,   140,   140,   140,   140,
+     140,   140,    42,    42,    42,   -88,   -88,   -88,    42,    42,
+      42,    -4,   140,    16,    78,   -88,    73,   140,   -88,   140,
+     -88,   140,   478,     6,   330,   140,   -88,   -88,   -88,   -88,
+     -88,    16,   -88,   -88,     5,     5,    77,    77,    77,   142,
+     507,   531,   531,     2,     2,     2,     2,   478,   478,   478,
+     478,   478,   478,   158,   158,   140,    16,   478,    55,    -1,
+     -88,   140,   219,   478,   367,   140,   -88,   -88,   404,    54,
+     478,    57,   140,   -88,   -88,   219,   -88,   -88,   478,   -88,
+     140,   140,   478,   -88,   441,   478,   -88
   };
 
   const signed char
   CarlosParser::yydefact_[] =
   {
-       0,     0,     0,     2,     7,     3,     1,     0,     0,    84,
-       0,     0,     0,    81,    82,    28,    29,     0,     0,     0,
-       0,     4,     0,    25,    26,    27,    45,     6,     5,    44,
-      46,    47,     0,     0,    11,    11,    11,     0,     0,     0,
-       0,     0,    83,     0,     0,     0,     0,    73,    72,    71,
-       0,     0,    32,     0,    37,     9,    12,     0,     0,     0,
+       0,     0,     0,     2,     7,     3,     1,     0,     0,    88,
+       0,     0,     0,    85,    86,    29,    30,     0,     0,     0,
+       0,     4,     0,    26,    27,    28,    46,     6,     5,    45,
+      47,    48,     0,     0,     0,    11,    11,    11,     0,     0,
+       0,     0,     0,    46,    87,     0,     0,     0,     0,    74,
+      73,    72,     0,     0,    33,     0,     0,    38,     9,    12,
        0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,     0,     0,    13,
-      10,    14,    15,    16,    17,    18,    19,     0,     0,     0,
-      77,    78,     0,     0,    70,     0,    34,     0,     0,     0,
-       8,    20,    21,    22,    23,     0,    69,    24,    48,    49,
-      50,    51,    52,    53,    54,    55,    56,    57,    58,    59,
-      60,    63,    64,    65,    66,    67,    68,    61,    62,     0,
-       0,    42,    38,     0,    74,     0,     0,    31,     0,    36,
-       0,     0,    43,    39,     0,    76,    75,     0,    79,    33,
-      35,     0,     0,    40,    80,     0,    41,    30
+       0,     0,     0,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,    13,    14,    10,    15,    16,    17,    18,    19,
+      20,     0,     0,     0,    81,    82,     0,     0,    71,     0,
+      35,     0,    76,     0,     0,     0,     8,    21,    22,    23,
+      24,     0,    70,    25,    49,    50,    51,    52,    53,    54,
+      55,    56,    57,    58,    59,    60,    61,    64,    65,    66,
+      67,    68,    69,    62,    63,     0,     0,    43,    39,     0,
+      78,     0,     0,    32,     0,     0,    77,    37,     0,     0,
+      44,    40,     0,    80,    79,     0,    83,    34,    75,    36,
+       0,     0,    41,    84,     0,    42,    31
   };
 
-  const short
+  const signed char
   CarlosParser::yypgoto_[] =
   {
-     -85,   -85,   -85,    -3,   -85,   504,    -4,   -85,   -84,   -85,
-     -85,   -85,   -85,   -85,   -85,   -85,    -9,   -31,   -85,   -85,
-     -85,   -85,   -85,   -85
+     -88,   -88,   -88,    -2,   -88,    46,    14,   -88,   -87,   -88,
+     -88,   -88,   -88,   -88,   -88,   -88,    -9,   -88,   -88,   -42,
+     -88,   -88,   -88,   -88,   -88,   -88
   };
 
   const unsigned char
   CarlosParser::yydefgoto_[] =
   {
-       0,     2,     3,     5,     7,    80,    81,    28,   106,    29,
-     107,    51,    30,    54,    31,    32,    33,    34,   134,    35,
-      36,    37,    38,    39
+       0,     2,     3,     5,     7,    84,    85,    28,   112,    29,
+     113,    53,    30,    57,    31,    32,    33,   103,    34,    35,
+     140,    36,    37,    38,    39,    40
   };
 
   const unsigned char
   CarlosParser::yytable_[] =
   {
-      42,    43,    44,    95,    27,   132,    57,    10,    47,    48,
-      49,    50,    40,    52,    45,     1,    58,    59,    60,    61,
-      62,   141,    96,    88,    65,    66,    67,    68,    69,    70,
-      89,    82,    83,     4,     6,    53,   101,   102,   103,   104,
-      90,    91,     4,    55,    98,    87,   143,    92,    93,   108,
-     109,   110,   111,   112,   113,   114,   115,   116,   117,   118,
-     119,   120,   121,   122,   123,   124,   125,   126,   127,   128,
-      15,    16,    41,   105,    46,   129,    17,    18,    99,   131,
-     100,   133,   130,    19,   136,   135,   137,    57,   138,   144,
-     140,    57,     8,    20,   151,     9,    10,   152,    11,    12,
-      13,    14,   146,    60,    61,    62,    15,    16,     0,    22,
-       0,    57,    17,    18,    23,    24,    25,    26,     0,    19,
-     142,    58,    59,    60,    61,    62,   147,     0,     0,    20,
-     145,     4,    21,   148,     0,   153,     0,     0,     0,     0,
-       0,     0,   155,   156,   154,    22,    57,     0,     0,     0,
-      23,    24,    25,    26,     0,     0,    58,    59,    60,    61,
-      62,    63,    64,     0,    65,    66,    67,    68,    69,    70,
-      71,     0,    55,     0,     0,     0,     0,     0,    72,    73,
-      74,    75,    76,    57,     0,     0,     0,     0,     0,     0,
-       0,    77,    78,    58,    59,    60,    61,    62,    63,    64,
-       0,    65,    66,    67,    68,    69,    70,    71,     0,     0,
-       0,     0,     4,     0,     0,    72,    73,    74,    75,    76,
-      57,     0,     0,     0,     0,     0,     0,     0,    77,    78,
-      58,    59,    60,    61,    62,    63,    64,     0,    65,    66,
-      67,    68,    69,    70,    71,     0,     0,     0,    94,     0,
-       0,     0,    72,    73,    74,    75,    76,    57,     0,     0,
-       0,     0,     0,     0,     0,    77,    78,    58,    59,    60,
-      61,    62,    63,    64,     0,    65,    66,    67,    68,    69,
-      70,    71,     0,    97,     0,     0,     0,     0,     0,    72,
-      73,    74,    75,    76,    57,     0,     0,     0,     0,     0,
-       0,     0,    77,    78,    58,    59,    60,    61,    62,    63,
-      64,     0,    65,    66,    67,    68,    69,    70,    71,     0,
-       0,     0,     0,     0,     0,     0,    72,    73,    74,    75,
-      76,    57,     0,     0,     0,     0,     0,     0,   139,    77,
-      78,    58,    59,    60,    61,    62,    63,    64,     0,    65,
-      66,    67,    68,    69,    70,    71,     0,     0,     0,     0,
-       0,     0,     0,    72,    73,    74,    75,    76,    57,     0,
-       0,     0,     0,     0,     0,   149,    77,    78,    58,    59,
-      60,    61,    62,    63,    64,     0,    65,    66,    67,    68,
-      69,    70,    71,     0,     0,     0,     0,     0,     0,     0,
-      72,    73,    74,    75,    76,    57,     0,     0,     0,     0,
-       0,     0,   150,    77,    78,    58,    59,    60,    61,    62,
-      63,    64,     0,    65,    66,    67,    68,    69,    70,    71,
-       0,     0,     0,     0,     0,     0,     0,    72,    73,    74,
-      75,    76,    57,     0,     0,     0,     0,     0,     0,   157,
-      77,    78,    58,    59,    60,    61,    62,    63,    64,     0,
-      65,    66,    67,    68,    69,    70,    71,     0,     0,     0,
-       0,     0,     0,     0,    72,    73,    74,    75,    76,    57,
-       0,     0,     0,     0,     0,     0,     0,    77,    78,    58,
-      59,    60,    61,    62,    63,    64,    57,    65,    66,    67,
-      68,    69,    70,     0,     0,     0,    58,    59,    60,    61,
-      62,    63,    57,     0,    65,    66,    67,    68,    69,    70,
-       0,     0,    58,    59,    60,    61,    62,     0,     0,     0,
-       0,     0,    67,    68,    69,    70,    56,    79,     0,     0,
-       0,    84,    85,    86
+      44,    45,    46,    99,    55,    27,   138,    10,    49,    50,
+      51,    52,     4,    54,    41,    47,    60,     6,    92,    60,
+      56,     1,   100,    58,   149,    93,    61,    62,    63,    64,
+      65,    63,    64,    65,   135,    91,   107,   108,   109,   110,
+      96,   136,     4,    94,    95,   145,   102,   104,   146,   151,
+      86,    87,   114,   115,   116,   117,   118,   119,   120,   121,
+     122,   123,   124,   125,   126,   127,   128,   129,   130,   131,
+     132,   133,   134,   111,    42,    48,    56,    97,    59,    82,
+      83,   105,   106,   137,    88,    89,    90,   139,   142,   141,
+     143,    60,   144,   152,   160,   161,   148,   154,     0,     0,
+       0,     0,     8,     0,     0,     9,    10,     0,    11,    12,
+      13,    14,     0,     0,     0,     0,    15,    16,     0,     0,
+       0,     0,    17,    18,     0,     0,   150,     0,     0,    19,
+       0,     0,   155,     0,     0,     0,   158,   153,     0,    20,
+     156,     4,    21,   162,     0,     0,     0,     0,     0,     0,
+       0,   164,   165,   163,     0,    22,    60,     0,    15,    16,
+      23,    24,    25,    26,    17,    18,    61,    62,    63,    64,
+      65,    19,    60,     0,    68,    69,    70,    71,    72,    73,
+       0,    20,    61,    62,    63,    64,    65,    66,    67,     0,
+      68,    69,    70,    71,    72,    73,    60,    22,     0,     0,
+       0,     0,    23,    24,    25,    43,    61,    62,    63,    64,
+      65,    66,    67,     0,    68,    69,    70,    71,    72,    73,
+      74,     0,    58,     0,     0,     0,     0,     0,    75,    76,
+      77,    78,    79,    60,     0,     0,     0,     0,     0,     0,
+       0,    80,    81,    61,    62,    63,    64,    65,    66,    67,
+       0,    68,    69,    70,    71,    72,    73,    74,     0,     0,
+       0,     0,     4,     0,     0,    75,    76,    77,    78,    79,
+      60,     0,     0,     0,     0,     0,     0,     0,    80,    81,
+      61,    62,    63,    64,    65,    66,    67,     0,    68,    69,
+      70,    71,    72,    73,    74,     0,     0,     0,    98,     0,
+       0,     0,    75,    76,    77,    78,    79,    60,     0,     0,
+       0,     0,     0,     0,     0,    80,    81,    61,    62,    63,
+      64,    65,    66,    67,     0,    68,    69,    70,    71,    72,
+      73,    74,     0,   101,     0,     0,     0,     0,     0,    75,
+      76,    77,    78,    79,    60,     0,     0,     0,     0,     0,
+       0,     0,    80,    81,    61,    62,    63,    64,    65,    66,
+      67,     0,    68,    69,    70,    71,    72,    73,    74,     0,
+       0,     0,     0,     0,     0,     0,    75,    76,    77,    78,
+      79,    60,     0,     0,     0,     0,     0,     0,   147,    80,
+      81,    61,    62,    63,    64,    65,    66,    67,     0,    68,
+      69,    70,    71,    72,    73,    74,     0,     0,     0,     0,
+       0,     0,     0,    75,    76,    77,    78,    79,    60,     0,
+       0,     0,     0,     0,     0,   157,    80,    81,    61,    62,
+      63,    64,    65,    66,    67,     0,    68,    69,    70,    71,
+      72,    73,    74,     0,     0,     0,     0,     0,     0,     0,
+      75,    76,    77,    78,    79,    60,     0,     0,     0,     0,
+       0,     0,   159,    80,    81,    61,    62,    63,    64,    65,
+      66,    67,     0,    68,    69,    70,    71,    72,    73,    74,
+       0,     0,     0,     0,     0,     0,     0,    75,    76,    77,
+      78,    79,    60,     0,     0,     0,     0,     0,     0,   166,
+      80,    81,    61,    62,    63,    64,    65,    66,    67,     0,
+      68,    69,    70,    71,    72,    73,    74,     0,     0,     0,
+       0,    60,     0,     0,    75,    76,    77,    78,    79,     0,
+       0,    61,    62,    63,    64,    65,    66,    80,    81,    68,
+      69,    70,    71,    72,    73,    60,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,    61,    62,    63,    64,    65,
+       0,     0,     0,     0,     0,    70,    71,    72,    73
   };
 
   const short
   CarlosParser::yycheck_[] =
   {
-       9,    10,    11,    39,     7,    89,    14,     8,    17,    18,
-      19,    20,     5,    22,     5,     3,    24,    25,    26,    27,
-      28,   105,    58,    38,    32,    33,    34,    35,    36,    37,
-      45,    35,    36,    43,     0,    57,    20,    21,    22,    23,
-      43,    44,    43,    40,    53,    65,   130,    65,    16,    58,
-      59,    60,    61,    62,    63,    64,    65,    66,    67,    68,
+       9,    10,    11,    39,    41,     7,    93,     8,    17,    18,
+      19,    20,    43,    22,     5,     5,    14,     0,    38,    14,
+      57,     3,    58,    40,   111,    45,    24,    25,    26,    27,
+      28,    26,    27,    28,    38,    65,    20,    21,    22,    23,
+      65,    45,    43,    45,    46,    39,    55,    56,    42,   136,
+      36,    37,    61,    62,    63,    64,    65,    66,    67,    68,
       69,    70,    71,    72,    73,    74,    75,    76,    77,    78,
-      18,    19,    65,    57,    65,    38,    24,    25,    57,    88,
-      40,     9,    45,    31,    93,    16,    95,    14,    97,    38,
-      99,    14,     4,    41,    40,     7,     8,    38,    10,    11,
-      12,    13,   133,    26,    27,    28,    18,    19,    -1,    57,
-      -1,    14,    24,    25,    62,    63,    64,    65,    -1,    31,
-     129,    24,    25,    26,    27,    28,   135,    -1,    -1,    41,
-     133,    43,    44,   136,    -1,   144,    -1,    -1,    -1,    -1,
-      -1,    -1,   151,   152,   147,    57,    14,    -1,    -1,    -1,
-      62,    63,    64,    65,    -1,    -1,    24,    25,    26,    27,
+      79,    80,    81,    57,    65,    65,    57,    16,    32,    33,
+      34,    57,    40,    92,    38,    39,    40,     9,    97,    16,
+      99,    14,   101,    38,    40,    38,   105,   139,    -1,    -1,
+      -1,    -1,     4,    -1,    -1,     7,     8,    -1,    10,    11,
+      12,    13,    -1,    -1,    -1,    -1,    18,    19,    -1,    -1,
+      -1,    -1,    24,    25,    -1,    -1,   135,    -1,    -1,    31,
+      -1,    -1,   141,    -1,    -1,    -1,   145,   139,    -1,    41,
+     142,    43,    44,   152,    -1,    -1,    -1,    -1,    -1,    -1,
+      -1,   160,   161,   155,    -1,    57,    14,    -1,    18,    19,
+      62,    63,    64,    65,    24,    25,    24,    25,    26,    27,
+      28,    31,    14,    -1,    32,    33,    34,    35,    36,    37,
+      -1,    41,    24,    25,    26,    27,    28,    29,    30,    -1,
+      32,    33,    34,    35,    36,    37,    14,    57,    -1,    -1,
+      -1,    -1,    62,    63,    64,    65,    24,    25,    26,    27,
       28,    29,    30,    -1,    32,    33,    34,    35,    36,    37,
       38,    -1,    40,    -1,    -1,    -1,    -1,    -1,    46,    47,
       48,    49,    50,    14,    -1,    -1,    -1,    -1,    -1,    -1,
@@ -2006,14 +2064,11 @@ namespace carlos {
       49,    50,    14,    -1,    -1,    -1,    -1,    -1,    -1,    58,
       59,    60,    24,    25,    26,    27,    28,    29,    30,    -1,
       32,    33,    34,    35,    36,    37,    38,    -1,    -1,    -1,
-      -1,    -1,    -1,    -1,    46,    47,    48,    49,    50,    14,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    59,    60,    24,
-      25,    26,    27,    28,    29,    30,    14,    32,    33,    34,
-      35,    36,    37,    -1,    -1,    -1,    24,    25,    26,    27,
-      28,    29,    14,    -1,    32,    33,    34,    35,    36,    37,
-      -1,    -1,    24,    25,    26,    27,    28,    -1,    -1,    -1,
-      -1,    -1,    34,    35,    36,    37,    32,    33,    -1,    -1,
-      -1,    37,    38,    39
+      -1,    14,    -1,    -1,    46,    47,    48,    49,    50,    -1,
+      -1,    24,    25,    26,    27,    28,    29,    59,    60,    32,
+      33,    34,    35,    36,    37,    14,    -1,    -1,    -1,    -1,
+      -1,    -1,    -1,    -1,    -1,    24,    25,    26,    27,    28,
+      -1,    -1,    -1,    -1,    -1,    34,    35,    36,    37
   };
 
   const signed char
@@ -2022,19 +2077,20 @@ namespace carlos {
        0,     3,    69,    70,    43,    71,     0,    72,     4,     7,
        8,    10,    11,    12,    13,    18,    19,    24,    25,    31,
       41,    44,    57,    62,    63,    64,    65,    71,    75,    77,
-      80,    82,    83,    84,    85,    87,    88,    89,    90,    91,
-       5,    65,    84,    84,    84,     5,    65,    84,    84,    84,
-      84,    79,    84,    57,    81,    40,    73,    14,    24,    25,
-      26,    27,    28,    29,    30,    32,    33,    34,    35,    36,
-      37,    38,    46,    47,    48,    49,    50,    59,    60,    73,
-      73,    74,    74,    74,    73,    73,    73,    65,    38,    45,
-      71,    71,    65,    16,    42,    39,    58,    40,    84,    57,
-      40,    20,    21,    22,    23,    57,    76,    78,    84,    84,
+      80,    82,    83,    84,    86,    87,    89,    90,    91,    92,
+      93,     5,    65,    65,    84,    84,    84,     5,    65,    84,
+      84,    84,    84,    79,    84,    41,    57,    81,    40,    73,
+      14,    24,    25,    26,    27,    28,    29,    30,    32,    33,
+      34,    35,    36,    37,    38,    46,    47,    48,    49,    50,
+      59,    60,    73,    73,    73,    74,    74,    74,    73,    73,
+      73,    65,    38,    45,    71,    71,    65,    16,    42,    39,
+      58,    40,    84,    85,    84,    57,    40,    20,    21,    22,
+      23,    57,    76,    78,    84,    84,    84,    84,    84,    84,
       84,    84,    84,    84,    84,    84,    84,    84,    84,    84,
-      84,    84,    84,    84,    84,    84,    84,    84,    84,    38,
-      45,    84,    76,     9,    86,    16,    84,    84,    84,    58,
-      84,    76,    84,    76,    38,    71,    85,    84,    71,    58,
-      58,    40,    38,    84,    71,    84,    84,    58
+      84,    84,    84,    84,    84,    38,    45,    84,    76,     9,
+      88,    16,    84,    84,    84,    39,    42,    58,    84,    76,
+      84,    76,    38,    71,    87,    84,    71,    58,    84,    58,
+      40,    38,    84,    71,    84,    84,    58
   };
 
   const signed char
@@ -2042,13 +2098,13 @@ namespace carlos {
   {
        0,    68,    69,    70,    71,    72,    72,    72,    73,    73,
       74,    74,    75,    75,    75,    75,    75,    75,    75,    75,
-      76,    76,    76,    76,    76,    77,    77,    77,    77,    77,
-      78,    79,    79,    80,    80,    81,    81,    82,    83,    83,
-      83,    83,    83,    83,    84,    84,    84,    84,    84,    84,
+      75,    76,    76,    76,    76,    76,    77,    77,    77,    77,
+      77,    78,    79,    79,    80,    80,    81,    81,    82,    83,
+      83,    83,    83,    83,    83,    84,    84,    84,    84,    84,
       84,    84,    84,    84,    84,    84,    84,    84,    84,    84,
       84,    84,    84,    84,    84,    84,    84,    84,    84,    84,
-      84,    84,    84,    84,    85,    86,    86,    86,    87,    88,
-      88,    89,    90,    91,    91
+      84,    84,    84,    84,    84,    85,    85,    86,    87,    88,
+      88,    88,    89,    90,    90,    91,    92,    93,    93
   };
 
   const signed char
@@ -2056,13 +2112,13 @@ namespace carlos {
   {
        0,     2,     1,     2,     3,     2,     2,     0,     2,     1,
        1,     0,     2,     2,     2,     2,     2,     2,     2,     2,
-       1,     1,     1,     1,     1,     1,     1,     1,     1,     1,
-       5,     3,     1,     5,     3,     4,     3,     2,     4,     5,
-       6,     7,     4,     5,     1,     1,     1,     1,     3,     3,
+       2,     1,     1,     1,     1,     1,     1,     1,     1,     1,
+       1,     5,     3,     1,     5,     3,     4,     3,     2,     4,
+       5,     6,     7,     4,     5,     1,     1,     1,     1,     3,
        3,     3,     3,     3,     3,     3,     3,     3,     3,     3,
        3,     3,     3,     3,     3,     3,     3,     3,     3,     3,
-       3,     2,     2,     2,     4,     2,     2,     0,     3,     5,
-       6,     1,     1,     2,     1
+       3,     3,     2,     2,     2,     3,     1,     4,     4,     2,
+       2,     0,     3,     5,     6,     1,     1,     2,     1
   };
 
 
@@ -2088,25 +2144,25 @@ namespace carlos {
   "$accept", "program", "entry", "statement_compound", "statements",
   "semicolon", "opt_semicolon", "statement", "type", "constant",
   "array_type", "array_element", "array_expression", "array_indices",
-  "array_access", "declaration", "expression", "if", "else", "while",
-  "for", "break", "continue", "return", YY_NULLPTR
+  "array_access", "declaration", "expression", "params", "call", "if",
+  "else", "while", "for", "break", "continue", "return", YY_NULLPTR
   };
 #endif
 
 
 #if YYDEBUG
-  const unsigned char
+  const short
   CarlosParser::yyrline_[] =
   {
-       0,    80,    80,    84,    89,    92,    97,   102,   105,   106,
-     109,   110,   113,   114,   115,   116,   117,   118,   119,   120,
-     123,   124,   125,   126,   127,   130,   131,   132,   133,   134,
-     136,   141,   142,   145,   148,   153,   154,   157,   163,   167,
-     171,   175,   179,   183,   189,   190,   191,   192,   193,   194,
-     195,   196,   197,   198,   199,   200,   201,   202,   203,   204,
-     205,   206,   207,   208,   209,   210,   211,   212,   213,   214,
-     215,   216,   217,   218,   221,   226,   227,   230,   233,   238,
-     242,   248,   251,   254,   255
+       0,    82,    82,    86,    91,    94,    99,   104,   107,   108,
+     111,   112,   115,   116,   117,   118,   119,   120,   121,   122,
+     123,   126,   127,   128,   129,   130,   133,   134,   135,   136,
+     137,   139,   144,   145,   148,   151,   156,   157,   160,   166,
+     170,   174,   178,   182,   186,   192,   193,   194,   195,   196,
+     197,   198,   199,   200,   201,   202,   203,   204,   205,   206,
+     207,   208,   209,   210,   211,   212,   213,   214,   215,   216,
+     217,   218,   219,   220,   221,   224,   225,   228,   231,   236,
+     237,   240,   243,   248,   252,   258,   261,   264,   265
   };
 
   void
@@ -2139,9 +2195,9 @@ namespace carlos {
 
 #line 17 "carlos.ypp"
 } // carlos
-#line 2143 "carlos.parser.cpp"
+#line 2199 "carlos.parser.cpp"
 
-#line 257 "carlos.ypp"
+#line 267 "carlos.ypp"
 
 
 void carlos::CarlosParser::error(const Location &loc, const std::string &msg) {

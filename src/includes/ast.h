@@ -65,6 +65,7 @@ class ExpressionNode : public ASTNode {
   std::variant<std::nullptr_t, int, bool, char, float, Range,
                std::shared_ptr<Array>>
       value{};
+  bool is_constant{};
 };
 
 class BinaryExpressionNode final : public ExpressionNode {
@@ -72,7 +73,9 @@ class BinaryExpressionNode final : public ExpressionNode {
   ~BinaryExpressionNode() override = default;
   BinaryExpressionNode(std::shared_ptr<ExpressionNode> left, std::string op,
                        std::shared_ptr<ExpressionNode> right)
-      : left(std::move(left)), right(std::move(right)), op(std::move(op)) {}
+      : left(std::move(left)), right(std::move(right)), op(std::move(op)) {
+    is_constant = this->left->is_constant && this->right->is_constant;
+  }
 
   std::shared_ptr<ExpressionNode> left, right;
   std::string op;
@@ -84,7 +87,9 @@ class UnaryExpressionNode final : public ExpressionNode {
   UnaryExpressionNode(std::string op,
                       std::shared_ptr<ExpressionNode> expression)
 
-      : expression(std::move(expression)), op(std::move(op)) {}
+      : expression(std::move(expression)), op(std::move(op)) {
+    is_constant = this->expression->is_constant;
+  }
 
   std::shared_ptr<ExpressionNode> expression;
   std::string op;
@@ -104,6 +109,7 @@ class ConstantExpressionNode final : public ExpressionNode {
   template <typename T>
   explicit ConstantExpressionNode(T value) : ExpressionNode() {
     this->value = std::move(value);
+    is_constant = true;
   }
 };
 
@@ -112,7 +118,9 @@ class CastExpressionNode final : public ExpressionNode {
   ~CastExpressionNode() override = default;
   CastExpressionNode(std::shared_ptr<ExpressionNode> expression,
                      std::shared_ptr<TypeNode> type)
-      : expression(std::move(expression)), type(std::move(type)) {}
+      : expression(std::move(expression)), type(std::move(type)) {
+    is_constant = this->expression->is_constant;
+  }
 
   std::shared_ptr<ExpressionNode> expression;
   std::shared_ptr<TypeNode> type;
@@ -323,6 +331,16 @@ class StatementsNode final : public StatementNode {
       : statements(std::move(statements)) {}
 
   std::vector<std::shared_ptr<StatementNode>> statements;
+};
+
+class CallStatementNode final : public StatementNode {
+ public:
+  ~CallStatementNode() override = default;
+  CallStatementNode(std::string name,
+                    std::vector<std::shared_ptr<ExpressionNode>> expressions)
+      : name(std::move(name)), expressions(std::move(expressions)) {}
+  std::string name;
+  std::vector<std::shared_ptr<ExpressionNode>> expressions;
 };
 
 class IfStatementNode final : public StatementNode {

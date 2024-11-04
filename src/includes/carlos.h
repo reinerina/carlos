@@ -4,7 +4,6 @@
 
 #ifndef CARLOS_H
 #define CARLOS_H
-#include <utility>
 #include <variant>
 #include <memory>
 #include <vector>
@@ -42,10 +41,7 @@ class Array {
     auto inner = &values;
     for (auto i = 0; i < indices.size() - 1; i++) {
       const auto idx = indices[i];
-      if (idx < 0 || idx >= inner->size()) {
-        LOG(FATAL) << "Index out of range";
-        return;
-      }
+
       if (const auto arr =
               std::get_if<std::shared_ptr<Array>>(&(*inner)[idx])) {
         inner = &(*arr)->values;
@@ -55,10 +51,7 @@ class Array {
       }
     }
     const auto idx = indices.back();
-    if (idx < 0 || idx >= inner->size()) {
-      LOG(FATAL) << "Index out of range";
-      return;
-    }
+
     (*inner)[idx] = value;
   }
 
@@ -88,10 +81,7 @@ class Array {
                                      Range, std::shared_ptr<Array>>> &vals,
             std::vector<int> &indices, const int index) {
     const auto idx = indices[index];
-    if (idx < 0 || idx >= vals.size()) {
-      LOG(FATAL) << "Index out of range";
-      return {nullptr};
-    }
+
     if (index == indices.size() - 1) {
       return vals[idx];
     }

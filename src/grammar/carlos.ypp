@@ -68,9 +68,11 @@
 %type <std::shared_ptr<ArrayAccessExpressionNode>> array_access
 %type <std::vector<std::shared_ptr<ExpressionNode>>> array_indices
 %type <std::vector<std::shared_ptr<ExpressionNode>>> array_element
+%type <std::vector<std::shared_ptr<ExpressionNode>>> params
 %type <std::shared_ptr<StatementNode>> statement
 %type <std::shared_ptr<StatementsNode>> statements statement_compound
 %type <std::shared_ptr<DeclarationStatementNode>> declaration
+%type <std::shared_ptr<CallStatementNode>> call
 %type <std::shared_ptr<IfStatementNode>> if else
 %type <std::shared_ptr<WhileStatementNode>> while
 %type <std::shared_ptr<ForStatementNode>> for
@@ -112,6 +114,7 @@
 
   statement: declaration semicolon { $$ = std::move($1); }
             | expression semicolon { $$ = std::make_shared<ExpressionStatementNode>(std::move($1)); }
+            | call semicolon { $$ = std::move($1); }
             | if opt_semicolon { $$ = std::move($1); }
             | while opt_semicolon { $$ = std::move($1); }
             | for opt_semicolon { $$ = std::move($1); }
@@ -216,6 +219,13 @@
             | CA_NOT expression { $$ = std::make_shared<UnaryExpressionNode>("!", std::move($2)); }
             | CA_MINUS expression %prec CA_NEG { $$ = std::make_shared<UnaryExpressionNode>("-", std::move($2)); }
             | CA_PLUS expression %prec CA_POS { $$ = std::make_shared<UnaryExpressionNode>("+", std::move($2)); }
+            ;
+
+  params: params CA_COMMA expression { auto temp = std::move($1); temp.push_back(std::move($3)); $$ = std::move(temp); }
+            | expression { $$.push_back(std::move($1)); }
+            ;
+
+  call: CA_IDENTIFIER CA_LPAREN params CA_RPAREN { $$ = std::make_shared<CallStatementNode>(std::move($1), std::move($3)); }
             ;
 
   if: CA_IF expression statement_compound else {

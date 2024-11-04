@@ -38,6 +38,15 @@ class Symbol {
       cal_dimensions(std::get<std::shared_ptr<Array>>(value));
     }
   }
+  Symbol(std::string name, std::string alias,
+         const std::variant<std::nullptr_t, int, bool, char, float, Range,
+                            std::shared_ptr<Array>> &value)
+      : name(std::move(name)), alias(std::move(alias)), value(value) {
+    type = get_type(value);
+    if (std::holds_alternative<std::shared_ptr<Array>>(value)) {
+      cal_dimensions(std::get<std::shared_ptr<Array>>(value));
+    }
+  }
 
   static SymbolType get_type(
       const std::variant<std::nullptr_t, int, bool, char, float, Range,
@@ -70,8 +79,9 @@ class Symbol {
     }
   }
 
-  std::string name;
-  SymbolKind kind;
+  std::string name{};
+  std::string alias{};
+  SymbolKind kind{};
   SymbolType type = SymbolType::UNKNOWN;
   std::vector<int> dimensions{};
 
@@ -246,6 +256,8 @@ class SymbolTable {
   [[nodiscard]] bool check_array_type(
       const std::shared_ptr<TypeNode> &type,
       const std::shared_ptr<TypeNode> &other) const;
+  [[nodiscard]] static bool check_expression(
+      const std::shared_ptr<ExpressionNode> &exp);
 
   [[nodiscard]] std::shared_ptr<TypeNode> infer_type(
       const std::shared_ptr<ExpressionNode> &node) const;

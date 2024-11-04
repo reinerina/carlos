@@ -24,7 +24,7 @@ OPERATOR ([+*-/%=,;!<>(){}:\.\[\]])
 COMMENT (\/\/[^\n]*)
 BEGIN_COMMENT (\/\*)
 END_COMMENT (\*\/)
-WS ([ \t\r\a\s]+)
+WS ([ \t\r\a]+)
 EOL (\n)
 
 %%

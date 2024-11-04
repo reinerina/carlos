@@ -5,6 +5,7 @@
 #include "carlos.parser.h"
 #include "ast.h"
 #include "table.h"
+#include "gen.h"
 
 int main(int argc, char *argv[]) {
   google::InitGoogleLogging(argv[0]);
@@ -17,7 +18,8 @@ int main(int argc, char *argv[]) {
   ops.set_width(70).add_options()                               //
       ("h,help", "Print help")                                  //
       ("i,input", "Input file", cxxopts::value<std::string>())  //
-      ("m,mode", "Mode", cxxopts::value<std::string>());
+      ("m,mode", "Mode", cxxopts::value<std::string>())         //
+      ("o,output", "Output file", cxxopts::value<std::string>());
 
   auto result = ops.parse(argc, argv);
 
@@ -48,9 +50,39 @@ int main(int argc, char *argv[]) {
   auto ast = carlos::ASTDisplay(carlos::root, 2);
   ast.print_ast();
 
-  auto table = carlos::SymbolTable(carlos::root, true);
+  auto table = carlos::SymbolTable(carlos::root, false);
   table.process();
 
+  auto gen = carlos::IRGen(carlos::root);
+
+  if (result.count("output") == 0) {
+    const auto output = path.substr(0, path.find_last_of('.')) + ".ll";
+    auto output_file = std::ofstream(output);
+    if (!file.is_open()) {
+      std::cerr << "Failed to open file: " << output << std::endl;
+      return 1;
+    }
+    const auto original = std::cout.rdbuf();
+    std::cout.rdbuf(output_file.rdbuf());
+    gen.gen();
+    std::cout.rdbuf(original);
+    output_file.close();
+    file.close();
+    return 0;
+  }
+
+  const auto output = result["output"].as<std::string>();
+  auto output_file = std::ofstream(output);
+  if (!file.is_open()) {
+    std::cerr << "Failed to open file: " << output << std::endl;
+    return 1;
+  }
+  const auto original = std::cout.rdbuf();
+  std::cout.rdbuf(output_file.rdbuf());
+  gen.gen();
+  std::cout.rdbuf(original);
+  output_file.close();
+  file.close();
 
   return 0;
 }

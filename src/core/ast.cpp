@@ -135,6 +135,19 @@ void ASTDisplay::print_statement(
     } else {
       LOG(FATAL) << "Unknown control statement type";
     }
+  } else if (const auto call =
+                 std::dynamic_pointer_cast<CallStatementNode>(statement)) {
+    print_indent(indent);
+    std::cout << "Call: " << std::endl;
+    print_indent(indent + step);
+    std::cout << "Identifier: " << std::endl;
+    print_indent(indent + 2 * step);
+    std::cout << call->name << std::endl;
+    print_indent(indent + step);
+    std::cout << "Parameters: " << std::endl;
+    for (const auto &param : call->expressions) {
+      print_expression(param, indent + 2 * step);
+    }
   } else {
     LOG(FATAL) << "Unknown statement type";
   }

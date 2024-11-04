@@ -110,8 +110,6 @@ void SymbolTable::process_statement(
       CHECK_EQ(std::holds_alternative<int>(end), true)
           << "End value is not an integer";
       const auto start_value = std::get<int>(start);
-      const auto end_value = std::get<int>(end);
-      CHECK_GT(end_value, start_value) << "End value is less than start value";
 
       add_symbol_to_next_scope(iterator_name, {start_value},
                                SymbolKind::VARIABLE, for_stat->mutability);
@@ -148,6 +146,78 @@ void SymbolTable::process_statement(
     }
     if (const auto cur_scope = current_scope(); return_type != ret_ty) {
       LOG(FATAL) << "Return type mismatch";
+    }
+  } else if (const auto call =
+                 std::dynamic_pointer_cast<CallStatementNode>(statement)) {
+    if (call->name == "stdin") {
+      for (const auto &exp : call->expressions) {
+        if (const auto id =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(exp)) {
+          const auto type = infer_type(exp);
+          if (const auto basic =
+                  std::dynamic_pointer_cast<BasicTypeNode>(type)) {
+            if (basic->type != "i32" && basic->type != "f32" &&
+                basic->type != "char" && basic->type != "bool") {
+              LOG(FATAL) << "Unknown stdin type";
+            }
+          } else {
+            LOG(FATAL) << "Unknown stdin type";
+          }
+          if (const auto value = eval_value(exp);
+              std::holds_alternative<std::nullptr_t>(value)) {
+            LOG(FATAL) << "Unknown stdin value";
+          }
+          if (auto symbol = get_symbol(id->name); !symbol->mutability) {
+            LOG(FATAL) << "Try to assign to immutable symbol";
+          }
+        } else if (const auto ac =
+                       std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                           exp)) {
+          const auto type = infer_type(exp);
+          if (const auto array =
+                  std::dynamic_pointer_cast<ArrayTypeNode>(type)) {
+            if (const auto basic =
+                    std::dynamic_pointer_cast<BasicTypeNode>(array->type)) {
+              if (basic->type != "i32" && basic->type != "f32" &&
+                  basic->type != "char" && basic->type != "bool") {
+                LOG(FATAL) << "Unknown stdin type";
+              }
+            } else {
+              LOG(FATAL) << "Unknown stdin type";
+            }
+            if (auto symbol = get_symbol(ac->array->name);
+                !symbol->mutability) {
+              LOG(FATAL) << "Try to assign to immutable symbol";
+            }
+          } else {
+            LOG(FATAL) << "Unknown stdin type";
+          }
+          if (auto symbol = get_symbol(ac->array->name); !symbol->mutability) {
+            LOG(FATAL) << "Try to assign to immutable symbol";
+          }
+
+        } else {
+          LOG(FATAL) << "Call stdin with non-identifier";
+        }
+      }
+    } else if (call->name == "stdout") {
+      for (const auto &exp : call->expressions) {
+        const auto type = infer_type(exp);
+        if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
+          if (basic->type != "i32" && basic->type != "f32" &&
+              basic->type != "char" && basic->type != "bool") {
+            LOG(FATAL) << "Unknown stdout type";
+          }
+        } else {
+          LOG(FATAL) << "Unknown stdout type";
+        }
+        const auto value = eval_value(exp);
+        if (std::holds_alternative<std::nullptr_t>(value)) {
+          LOG(FATAL) << "Unknown stdout value";
+        }
+      }
+    } else {
+      LOG(FATAL) << "Unknown call statement";
     }
   } else {
     LOG(FATAL) << "Unknown statement type";
@@ -189,13 +259,14 @@ void SymbolTable::process_declaration(
     declaration->type = inferred_type;
   }
   const auto value = eval_value(expression);
+  declaration->identifier->value = value;
   add_symbol(name, value, kind, mutability);
 }
 
 void SymbolTable::process_expression(
     const std::shared_ptr<ExpressionNode> &expression) const {
-  if (const auto type = infer_type(expression); type != nullptr) {
-  }
+  const auto type = infer_type(expression);
+  const auto value = eval_value(expression);
 }
 
 std::shared_ptr<TypeNode> SymbolTable::infer_type(
@@ -589,9 +660,9 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       LOG(FATAL) << "Unknown symbol";
       return {};
     }
+    identifier->value = symbol->value;
 
     return symbol->value;
-    LOG(FATAL) << "Try to evaluate array";
   }
   if (const auto binary =
           std::dynamic_pointer_cast<BinaryExpressionNode>(node)) {
@@ -607,51 +678,77 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       auto l = std::get<int>(left);
       const auto r = std::get<int>(right);
       if (op == "+") {
-        return {l + r};
+        const auto res = l + r;
+        binary->value = res;
+        return {res};
       }
       if (op == "-") {
-        return {l - r};
+        const auto res = l - r;
+        binary->value = res;
+        return {res};
       }
       if (op == "*") {
-        return {l * r};
+        const auto res = l * r;
+        binary->value = res;
+        return {res};
       }
       if (op == "/") {
         if (r == 0) {
           LOG(FATAL) << "Division by zero";
           return {};
         }
-        return {l / r};
+        const auto res = l / r;
+        binary->value = res;
+        return {res};
       }
       if (op == "%") {
         if (r == 0) {
           LOG(FATAL) << "Division by zero";
           return {};
         }
-        return {l % r};
+        const auto res = l % r;
+        binary->value = res;
+        return {res};
       }
       if (op == "<") {
-        return {l < r};
+        const auto res = l < r;
+        binary->value = res;
+        return {res};
       }
       if (op == "<=") {
-        return {l <= r};
+        const auto res = l <= r;
+        binary->value = res;
+        return {res};
       }
       if (op == ">") {
-        return {l > r};
+        const auto res = l > r;
+        binary->value = res;
+        return {res};
       }
       if (op == ">=") {
-        return {l >= r};
+        const auto res = l >= r;
+        binary->value = res;
+        return {res};
       }
       if (op == "==") {
-        return {l == r};
+        const auto res = l == r;
+        binary->value = res;
+        return {res};
       }
       if (op == "!=") {
-        return {l != r};
+        const auto res = l != r;
+        binary->value = res;
+        return {res};
       }
       if (op == "..") {
-        return {Range(l, r, false)};
+        const auto res = Range{l, r, false};
+        binary->value = res;
+        return {res};
       }
       if (op == "..=") {
-        return {Range(l, r, true)};
+        const auto res = Range{l, r, true};
+        binary->value = res;
+        return {res};
       }
       if (op == "=") {
         if (const auto l_identifier =
@@ -860,39 +957,59 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       auto l = std::get<float>(left);
       const auto r = std::get<float>(right);
       if (op == "+") {
-        return {l + r};
+        const auto res = l + r;
+        binary->value = res;
+        return {res};
       }
       if (op == "-") {
-        return {l - r};
+        const auto res = l - r;
+        binary->value = res;
+        return {res};
       }
       if (op == "*") {
-        return {l * r};
+        const auto res = l * r;
+        binary->value = res;
+        return {res};
       }
       if (op == "/") {
         if (r == 0) {
           LOG(FATAL) << "Division by zero";
           return {};
         }
-        return {l / r};
+        const auto res = l / r;
+        binary->value = res;
+        return {res};
       }
 
       if (op == "<") {
-        return {l < r};
+        const auto res = l < r;
+        binary->value = res;
+        return {res};
       }
       if (op == "<=") {
-        return {l <= r};
+        const auto res = l <= r;
+        binary->value = res;
+        return {res};
       }
       if (op == ">") {
-        return {l > r};
+        const auto res = l > r;
+        binary->value = res;
+        return {res};
       }
       if (op == ">=") {
-        return {l >= r};
+        const auto res = l >= r;
+        binary->value = res;
+        return {res};
       }
       if (op == "==") {
-        return {l == r};
+        const auto res = l == r;
+        binary->value = res;
+        return {res};
       }
       if (op == "!=") {
-        return {l != r};
+        const auto res = l != r;
+        binary->value = res;
+        return {res};
       }
       if (op == "=") {
         if (const auto l_identifier =
@@ -1064,16 +1181,24 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       auto l = std::get<bool>(left);
       const auto r = std::get<bool>(right);
       if (op == "&&") {
-        return {l && r};
+        const auto res = l && r;
+        binary->value = res;
+        return {res};
       }
       if (op == "||") {
-        return {l || r};
+        const auto res = l || r;
+        binary->value = res;
+        return {res};
       }
       if (op == "==") {
-        return {l == r};
+        const auto res = l == r;
+        binary->value = res;
+        return {res};
       }
       if (op == "!=") {
-        return {l != r};
+        const auto res = l != r;
+        binary->value = res;
+        return {res};
       }
       if (op == "=") {
         if (const auto l_identifier =
@@ -1114,22 +1239,34 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       auto l = std::get<char>(left);
       const auto r = std::get<char>(right);
       if (op == "<") {
-        return {l < r};
+        const auto res = l < r;
+        binary->value = res;
+        return {res};
       }
       if (op == "<=") {
-        return {l <= r};
+        const auto res = l <= r;
+        binary->value = res;
+        return {res};
       }
       if (op == ">") {
-        return {l > r};
+        const auto res = l > r;
+        binary->value = res;
+        return {res};
       }
       if (op == ">=") {
-        return {l >= r};
+        const auto res = l >= r;
+        binary->value = res;
+        return {res};
       }
       if (op == "==") {
-        return {l == r};
+        const auto res = l == r;
+        binary->value = res;
+        return {res};
       }
       if (op == "!=") {
-        return {l != r};
+        const auto res = l != r;
+        binary->value = res;
+        return {res};
       }
       if (op == "=") {
         if (const auto l_identifier =
@@ -1154,27 +1291,37 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
     if (std::holds_alternative<int>(exp)) {
       const auto e = std::get<int>(exp);
       if (unary->op == "+") {
-        return {e};
+        const auto res = e;
+        unary->value = res;
+        return {res};
       }
       if (unary->op == "-") {
-        return {-e};
+        const auto res = -e;
+        unary->value = res;
+        return {res};
       }
       return {};
     }
     if (std::holds_alternative<float>(exp)) {
       const auto e = std::get<float>(exp);
       if (unary->op == "+") {
-        return {e};
+        const auto res = e;
+        unary->value = res;
+        return {res};
       }
       if (unary->op == "-") {
-        return {-e};
+        const auto res = -e;
+        unary->value = res;
+        return {res};
       }
       return {};
     }
     if (std::holds_alternative<bool>(exp)) {
       const auto e = std::get<bool>(exp);
       if (unary->op == "!") {
-        return {!e};
+        const auto res = !e;
+        unary->value = res;
+        return {res};
       }
       return {};
     }
@@ -1189,16 +1336,24 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       const auto v = std::get<int>(value);
       if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
         if (basic->type == "i32") {
-          return {v};
+          const auto res = v;
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "f32") {
-          return {static_cast<float>(v)};
+          const auto res = static_cast<float>(v);
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "char") {
-          return {static_cast<char>(v)};
+          const auto res = static_cast<char>(v);
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "bool") {
-          return {static_cast<bool>(v)};
+          const auto res = static_cast<bool>(v);
+          cast->value = res;
+          return {res};
         }
         LOG(FATAL) << "Unknown cast type";
         return {};
@@ -1210,16 +1365,24 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       const auto v = std::get<float>(value);
       if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
         if (basic->type == "i32") {
-          return {static_cast<int>(v)};
+          const auto res = static_cast<int>(v);
+          cast->value = res;
+          return {res};
         }
         if (basic->type == " f32") {
-          return {v};
+          const auto res = v;
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "char") {
-          return {static_cast<char>(v)};
+          const auto res = static_cast<char>(v);
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "bool") {
-          return {static_cast<bool>(v)};
+          const auto res = static_cast<bool>(v);
+          cast->value = res;
+          return {res};
         }
         LOG(FATAL) << "Unknown cast type";
         return {};
@@ -1229,16 +1392,24 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       const auto v = std::get<char>(value);
       if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
         if (basic->type == "i32") {
-          return {static_cast<int>(v)};
+          const auto res = static_cast<int>(v);
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "f32") {
-          return {static_cast<float>(v)};
+          const auto res = static_cast<float>(v);
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "char") {
-          return {v};
+          const auto res = v;
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "bool") {
-          return {static_cast<bool>(v)};
+          const auto res = static_cast<bool>(v);
+          cast->value = res;
+          return {res};
         }
         LOG(FATAL) << "Unknown cast type";
         return {};
@@ -1248,16 +1419,24 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       const auto v = std::get<bool>(value);
       if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
         if (basic->type == "i32") {
-          return {static_cast<int>(v)};
+          const auto res = static_cast<int>(v);
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "f32") {
-          return {static_cast<float>(v)};
+          const auto res = static_cast<float>(v);
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "char") {
-          return {static_cast<char>(v)};
+          const auto res = static_cast<char>(v);
+          cast->value = res;
+          return {res};
         }
         if (basic->type == "bool") {
-          return {v};
+          const auto res = v;
+          cast->value = res;
+          return {res};
         }
         LOG(FATAL) << "Unknown cast type";
         return {};
@@ -1286,7 +1465,9 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
         for (auto i = 0; i < c; ++i) {
           elements.push_back(element);
         }
-        return {std::make_shared<Array>(c, elements)};
+        const auto res = std::make_shared<Array>(c, elements);
+        array->value = res;
+        return {res};
       }
       LOG(FATAL) << "Array count is not an integer";
       return {};
@@ -1301,7 +1482,9 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       }
       elements.push_back(value);
     }
-    return {std::make_shared<Array>(elements.size(), elements)};
+    const auto res = std::make_shared<Array>(elements.size(), elements);
+    array->value = res;
+    return {res};
   }
   if (const auto array_access =
           std::dynamic_pointer_cast<ArrayAccessExpressionNode>(node)) {
@@ -1359,6 +1542,10 @@ bool SymbolTable::check_array_type(
   if (const auto array_type = std::dynamic_pointer_cast<ArrayTypeNode>(type)) {
     if (const auto other_array_type =
             std::dynamic_pointer_cast<ArrayTypeNode>(other)) {
+      if (!check_expression(array_type->size)) {
+        LOG(FATAL) << "Array size is not a constant";
+        return false;
+      }
       const auto array_count = eval_value(array_type->size);
       if (const auto other_array_count = eval_value(other_array_type->size);
           check_array_type(array_type->type, other_array_type->type) &&
@@ -1383,4 +1570,26 @@ bool SymbolTable::check_array_type(
   }
   return false;
 }
+
+bool SymbolTable::check_expression(const std::shared_ptr<ExpressionNode> &exp) {
+  if (exp == nullptr) {
+    return false;
+  }
+  if (const auto constant =
+          std::dynamic_pointer_cast<ConstantExpressionNode>(exp)) {
+    return true;
+  }
+  if (const auto binary =
+          std::dynamic_pointer_cast<BinaryExpressionNode>(exp)) {
+    return check_expression(binary->left) && check_expression(binary->right);
+  }
+  if (const auto unary = std::dynamic_pointer_cast<UnaryExpressionNode>(exp)) {
+    return check_expression(unary->expression);
+  }
+  if (const auto cast = std::dynamic_pointer_cast<CastExpressionNode>(exp)) {
+    return check_expression(cast->expression);
+  }
+  return false;
+}
+
 }  // namespace carlos
