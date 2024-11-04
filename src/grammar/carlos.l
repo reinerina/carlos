@@ -18,7 +18,7 @@ using Token = CarlosParser::token;
 ENTRYPOINT (fn[ ]+main[ ]*\([ ]*\)[ ]*)
 INTEGER ([+-]?0x[0-9a-fA-F]+)|([+-]?0b[01]+)|([+-]?[0-9]+)
 FLOAT ([+-]?[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?)
-CHAR (\'.\')
+CHAR ('(\\.|[^\\'])')
 IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
 OPERATOR ([+*-/%=,;!<>(){}:\.\[\]])
 COMMENT (\/\/[^\n]*)
@@ -275,6 +275,18 @@ EOL (\n)
 
 {CHAR} {
   location.next_word(yyleng);
+  if (yytext[1] == '\\') {
+    switch (yytext[2]) {
+      case 'n': return CarlosParser::make_CA_CHAR_CONST('\n', location);
+      case 't': return CarlosParser::make_CA_CHAR_CONST('\t', location);
+      case 'r': return CarlosParser::make_CA_CHAR_CONST('\r', location);
+      case 'a': return CarlosParser::make_CA_CHAR_CONST('\a', location);
+      case '\\': return CarlosParser::make_CA_CHAR_CONST('\\', location);
+      case '\'': return CarlosParser::make_CA_CHAR_CONST('\'', location);
+      case '"': return CarlosParser::make_CA_CHAR_CONST('"', location);
+      default: return CarlosParser::make_CA_CHAR_CONST(yytext[2], location);
+    }
+  }
   return CarlosParser::make_CA_CHAR_CONST(yytext[1], location);
 }
 

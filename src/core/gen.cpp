@@ -65,8 +65,16 @@ void IRGen::gen_statement(const std::shared_ptr<StatementNode> &node) {
   } else if (const auto call =
                  std::dynamic_pointer_cast<CallStatementNode>(node)) {
     gen_call(call);
+  } else if (const auto if_stat =
+                 std::dynamic_pointer_cast<IfStatementNode>(node)) {
+    gen_if(if_stat);
+  } else if (const auto while_stat =
+                 std::dynamic_pointer_cast<WhileStatementNode>(node)) {
+    gen_while(while_stat);
+  } else if (const auto for_stat =
+                 std::dynamic_pointer_cast<ForStatementNode>(node)) {
+    gen_for(for_stat);
   } else {
-    // TODO: Control flow
     LOG(FATAL) << "Unknown statement type";
   }
 }
@@ -202,6 +210,90 @@ void IRGen::gen_call(const std::shared_ptr<CallStatementNode> &node) {
   }
 }
 
+void IRGen::gen_while(const std::shared_ptr<WhileStatementNode> &node) {
+  const auto while_label = next_while_label();
+  std::cout << "br label %while" << while_label << ".cond\n";
+  std::cout << "while" << while_label << ".cond:\n";
+  const auto cond_label = gen_expression(node->condition);
+  std::cout << "br i1 %" << cond_label << ", label %while" << while_label
+            << ".body, label %while" << while_label << ".end\n";
+  std::cout << "while" << while_label << ".body:\n";
+  gen_statement(node->body);
+  std::cout << "br label %while" << while_label << ".cond\n";
+  std::cout << "while" << while_label << ".end:\n";
+}
+
+void IRGen::gen_if(const std::shared_ptr<IfStatementNode> &node) {
+  if (node->condition) {
+    const auto if_label = next_if_label();
+    const auto condition_label = gen_expression(node->condition);
+    if (begin_if == 0) {
+      begin_if = if_label;
+    }
+    if (node->else_body) {
+      std::cout << "br i1 %" << condition_label << ", label %if" << if_label
+                << ".then, label %if" << if_label << ".else\n";
+      std::cout << "if" << if_label << ".then:\n";
+      gen_statement(node->then_body);
+      std::cout << "br label %if" << begin_if << ".end\n";
+      std::cout << "if" << if_label << ".else:\n";
+      gen_statement(node->else_body);
+    } else {
+      std::cout << "br i1 %" << condition_label << ", label %if" << if_label
+                << ".then, label %if" << begin_if << ".end\n";
+      std::cout << "if" << if_label << ".then:\n";
+      gen_statement(node->then_body);
+      std::cout << "br label %if" << begin_if << ".end\n";
+      std::cout << "if" << begin_if << ".end:\n";
+      begin_if = 0;
+    }
+  } else {
+    gen_statement(node->then_body);
+    std::cout << "br label %if" << begin_if << ".end\n";
+    std::cout << "if" << begin_if << ".end:\n";
+    begin_if = 0;
+  }
+}
+
+void IRGen::gen_for(const std::shared_ptr<ForStatementNode> &node) {
+  const auto for_label = next_for_label();
+  const auto iter_label = get_label(node->iter->name);
+  const auto alias = node->iter->name + std::to_string(iter_label);
+  add_symbol_to_next_scope(node->iter->name, alias, node->iter->value);
+  const auto range_label = gen_expression(node->iterator);
+  CHECK_EQ(range_label, 0);
+  const auto start_label = std::get<0>(range_labels);
+  const auto end_label = std::get<1>(range_labels);
+  const auto inclusive = std::get<2>(range_labels);
+  const auto alias_label = next_label();
+  const auto cmp_label = next_label();
+  std::cout << "%" << alias << " = alloca i32\n";
+  std::cout << "store i32 %" << start_label << ", i32* %" << alias << "\n";
+  std::cout << "br label %for" << for_label << ".cond\n";
+  std::cout << "for" << for_label << ".cond:\n";
+  if (inclusive) {
+    std::cout << "%" << alias_label << " = load i32, i32* %" << alias << "\n";
+    std::cout << "%" << cmp_label << " = icmp sle i32 %" << alias_label << ", %"
+              << end_label << "\n";
+  } else {
+    std::cout << "%" << alias_label << " = load i32, i32* %" << alias << "\n";
+    std::cout << "%" << cmp_label << " = icmp slt i32 %" << alias_label << ", %"
+              << end_label << "\n";
+  }
+  std::cout << "br i1 %" << cmp_label << ", label %for" << for_label
+            << ".body, label %for" << for_label << ".end\n";
+  std::cout << "for" << for_label << ".body:\n";
+  gen_statement(node->body);
+  const auto temp_alias = next_label();
+  const auto add_label = next_label();
+  std::cout << "%" << temp_alias << " = load i32, i32* %" << alias << "\n";
+  std::cout << "%" << add_label << " = add i32 %" << temp_alias << ", 1\n";
+  std::cout << "store i32 %" << add_label << ", i32* %" << alias << "\n";
+  std::cout << "br label %for" << for_label << ".cond\n";
+  std::cout << "for" << for_label << ".end:\n";
+  range_labels = {0, 0, false};
+}
+
 int IRGen::gen_expression(const std::shared_ptr<ExpressionNode> &node) {
   if (const auto binary =
           std::dynamic_pointer_cast<BinaryExpressionNode>(node)) {
@@ -212,8 +304,10 @@ int IRGen::gen_expression(const std::shared_ptr<ExpressionNode> &node) {
     const auto left_label = gen_expression(binary->left);
     const auto right_label = gen_expression(binary->right);
     const auto op = binary->op;
-    const auto value = &binary->value;
-    if (std::holds_alternative<int>(*value)) {
+    const auto left_value = &binary->left->value;
+    const auto right_value = &binary->right->value;
+    if (std::holds_alternative<int>(*left_value) &&
+        std::holds_alternative<int>(*right_value)) {
       if (op == "+") {
         const auto label = next_label();
         std::cout << "%" << label << " = add i32 %" << left_label << ", %"
@@ -360,13 +454,21 @@ int IRGen::gen_expression(const std::shared_ptr<ExpressionNode> &node) {
 
           return 0;
         }
-        // TODO: Range
+      }
+      if (op == "..") {
+        range_labels = {left_label, right_label, false};
+        return 0;
+      }
+      if (op == "..=") {
+        range_labels = {left_label, right_label, true};
+        return 0;
       }
 
       LOG(FATAL) << "Unknown operator";
       return -1;
     }
-    if (std::holds_alternative<float>(*value)) {
+    if (std::holds_alternative<float>(*left_value) &&
+        std::holds_alternative<float>(*right_value)) {
       if (op == "+") {
         const auto label = next_label();
         std::cout << "%" << label << " = fadd float %" << left_label << ", %"
@@ -498,7 +600,8 @@ int IRGen::gen_expression(const std::shared_ptr<ExpressionNode> &node) {
       LOG(FATAL) << "Unknown operator";
       return -1;
     }
-    if (std::holds_alternative<char>(*value)) {
+    if (std::holds_alternative<char>(*left_value) &&
+        std::holds_alternative<char>(*right_value)) {
       if (op == "==") {
         const auto label = next_label();
         std::cout << "%" << label << " = icmp eq i8 %" << left_label << ", %"
@@ -550,7 +653,8 @@ int IRGen::gen_expression(const std::shared_ptr<ExpressionNode> &node) {
       LOG(FATAL) << "Unknown operator";
       return -1;
     }
-    if (std::holds_alternative<bool>(*value)) {
+    if (std::holds_alternative<bool>(*left_value) &&
+        std::holds_alternative<bool>(*right_value)) {
       if (op == "==") {
         const auto label = next_label();
         std::cout << "%" << label << " = icmp eq i1 %" << left_label << ", %"
@@ -600,7 +704,7 @@ int IRGen::gen_expression(const std::shared_ptr<ExpressionNode> &node) {
     }
     const auto label = gen_expression(unary->expression);
     const auto op = unary->op;
-    const auto value = &unary->value;
+    const auto value = &unary->expression->value;
     if (std::holds_alternative<int>(*value)) {
       if (op == "+") {
         return label;

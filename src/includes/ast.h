@@ -65,6 +65,7 @@ class ExpressionNode : public ASTNode {
   std::variant<std::nullptr_t, int, bool, char, float, Range,
                std::shared_ptr<Array>>
       value{};
+  std::shared_ptr<TypeNode> type;
   bool is_constant{};
 };
 
@@ -118,12 +119,12 @@ class CastExpressionNode final : public ExpressionNode {
   ~CastExpressionNode() override = default;
   CastExpressionNode(std::shared_ptr<ExpressionNode> expression,
                      std::shared_ptr<TypeNode> type)
-      : expression(std::move(expression)), type(std::move(type)) {
+      : expression(std::move(expression)) {
     is_constant = this->expression->is_constant;
+    this->type = std::move(type);
   }
 
   std::shared_ptr<ExpressionNode> expression;
-  std::shared_ptr<TypeNode> type;
 };
 
 class ArrayTypeNode final : public TypeNode {

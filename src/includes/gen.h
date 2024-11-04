@@ -26,6 +26,12 @@ class IRGen {
 
   void gen_call(const std::shared_ptr<CallStatementNode> &node);
 
+  void gen_if(const std::shared_ptr<IfStatementNode> &node);
+
+  void gen_while(const std::shared_ptr<WhileStatementNode> &node);
+
+  void gen_for(const std::shared_ptr<ForStatementNode> &node);
+
   int gen_expression(const std::shared_ptr<ExpressionNode> &node);
 
   [[nodiscard]] std::shared_ptr<Symbol> get_symbol(const std::string &name) {
@@ -78,13 +84,24 @@ class IRGen {
   }
 
   [[nodiscard]] int current_label() const { return temp_label; }
+  [[nodiscard]] int current_while_label() const { return while_label; }
+  [[nodiscard]] int current_if_label() const { return if_label; }
+  [[nodiscard]] int current_for_label() const { return for_label; }
   int next_label() { return ++temp_label; }
+  int next_while_label() { return ++while_label; }
+  int next_if_label() { return ++if_label; }
+  int next_for_label() { return ++for_label; }
 
   std::shared_ptr<ASTNode> root;
   std::vector<std::unordered_map<std::string, std::shared_ptr<Symbol>>>
       scopes{};
   std::unordered_map<std::string, int> labels{};
-  int temp_label = 0;
+  int temp_label{};
+  int while_label{};
+  int if_label{};
+  int begin_if{};
+  int for_label{};
+  std::tuple<int, int, bool> range_labels{};
   std::unordered_map<std::string, std::shared_ptr<Symbol>>
       symbols_in_next_scope{};
 };

@@ -47,6 +47,7 @@ void SymbolTable::process_statement(
       CHECK_EQ(if_stat->else_body, nullptr) << "If condition is null, but else "
                                                "body is not null";
 
+      const auto condition_value = eval_value(if_stat->condition);
       in_control_flow = true;
       process_statement(if_stat->then_body);
       in_control_flow = false;
@@ -56,6 +57,7 @@ void SymbolTable::process_statement(
         LOG(FATAL) << "If condition type is null";
         return;
       }
+      const auto condition_value = eval_value(if_stat->condition);
       if (const auto basic_type =
               std::dynamic_pointer_cast<BasicTypeNode>(condition_type)) {
         if (basic_type->type != "bool") {
@@ -81,6 +83,7 @@ void SymbolTable::process_statement(
       LOG(FATAL) << "While condition type is null";
       return;
     }
+    const auto condition_value = eval_value(while_stat->condition);
     if (const auto basic_type =
             std::dynamic_pointer_cast<BasicTypeNode>(condition_type)) {
       if (basic_type->type != "bool") {
@@ -101,6 +104,7 @@ void SymbolTable::process_statement(
       LOG(FATAL) << "For iterator type is null";
       return;
     }
+    const auto iterator_value = eval_value(for_stat->iterator);
     if (const auto range =
             std::dynamic_pointer_cast<RangeTypeNode>(iterator_type)) {
       const auto start = eval_value(range->start);
@@ -110,6 +114,7 @@ void SymbolTable::process_statement(
       CHECK_EQ(std::holds_alternative<int>(end), true)
           << "End value is not an integer";
       const auto start_value = std::get<int>(start);
+      for_stat->iter->value = start;
 
       add_symbol_to_next_scope(iterator_name, {start_value},
                                SymbolKind::VARIABLE, for_stat->mutability);
@@ -130,6 +135,7 @@ void SymbolTable::process_statement(
     auto ret_ty = SymbolType::VOID;
     if (return_stat->expression != nullptr) {
       const auto ret_type = infer_type(return_stat->expression);
+      const auto ret_value = eval_value(return_stat->expression);
       if (const auto ret = std::static_pointer_cast<BasicTypeNode>(ret_type)) {
         if (ret->type == "i32") {
           ret_ty = SymbolType::INT;
@@ -232,6 +238,10 @@ void SymbolTable::process_declaration(
   const auto mutability = declaration->mutability;
   const auto expression = declaration->expression;
   const auto inferred_type = infer_type(expression);
+  if (const auto range_type =
+          std::dynamic_pointer_cast<RangeTypeNode>(inferred_type)) {
+    LOG(FATAL) << "Range type is not allowed in declaration";
+  }
   if (type != nullptr) {
     if (const auto basic_type =
             std::dynamic_pointer_cast<BasicTypeNode>(type)) {
@@ -278,16 +288,24 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
           std::dynamic_pointer_cast<ConstantExpressionNode>(node)) {
     const auto value = &constant->value;
     if (std::holds_alternative<int>(*value)) {
-      return std::make_shared<BasicTypeNode>("i32");
+      const auto ty = std::make_shared<BasicTypeNode>("i32");
+      constant->type = ty;
+      return ty;
     }
     if (std::holds_alternative<float>(*value)) {
-      return std::make_shared<BasicTypeNode>("f32");
+      const auto ty = std::make_shared<BasicTypeNode>("f32");
+      constant->type = ty;
+      return ty;
     }
     if (std::holds_alternative<char>(*value)) {
-      return std::make_shared<BasicTypeNode>("char");
+      const auto ty = std::make_shared<BasicTypeNode>("char");
+      constant->type = ty;
+      return ty;
     }
     if (std::holds_alternative<bool>(*value)) {
-      return std::make_shared<BasicTypeNode>("bool");
+      const auto ty = std::make_shared<BasicTypeNode>("bool");
+      constant->type = ty;
+      return ty;
     }
     LOG(FATAL) << "Unknown constant type";
     return nullptr;
@@ -297,27 +315,40 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
     if (const auto symbol = get_symbol(identifier->name)) {
       const auto &value = symbol->value;
       if (std::holds_alternative<int>(value)) {
-        return std::make_shared<BasicTypeNode>("i32");
+        const auto ty = std::make_shared<BasicTypeNode>("i32");
+        identifier->type = ty;
+        return ty;
       }
       if (std::holds_alternative<float>(value)) {
-        return std::make_shared<BasicTypeNode>("f32");
+        const auto ty = std::make_shared<BasicTypeNode>("f32");
+        identifier->type = ty;
+        return ty;
       }
       if (std::holds_alternative<char>(value)) {
-        return std::make_shared<BasicTypeNode>("char");
+        const auto ty = std::make_shared<BasicTypeNode>("char");
+        identifier->type = ty;
+        return ty;
       }
       if (std::holds_alternative<bool>(value)) {
-        return std::make_shared<BasicTypeNode>("bool");
+        const auto ty = std::make_shared<BasicTypeNode>("bool");
+        identifier->type = ty;
+        return ty;
       }
       if (std::holds_alternative<Range>(value)) {
         const auto range = std::get<Range>(value);
-        return std::make_shared<RangeTypeNode>(
+
+        const auto ty = std::make_shared<RangeTypeNode>(
             std::make_shared<ConstantExpressionNode>(range.start),
             std::make_shared<ConstantExpressionNode>(range.end),
             range.inclusive);
+        identifier->type = ty;
+        return ty;
       }
       if (std::holds_alternative<std::shared_ptr<Array>>(value)) {
         const auto array = std::get<std::shared_ptr<Array>>(value);
-        return std::make_shared<ArrayTypeNode>(array);
+        const auto ty = std::make_shared<ArrayTypeNode>(array);
+        identifier->type = ty;
+        return ty;
       }
       LOG(FATAL) << "Unknown symbol type";
     }
@@ -333,19 +364,27 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
               std::dynamic_pointer_cast<BasicTypeNode>(right)) {
         if (l_basic->type == "i32" && r_basic->type == "i32") {
           if (op == "+" || op == "-" || op == "*" || op == "/" || op == "%") {
-            return std::make_shared<BasicTypeNode>("i32");
+            const auto ty = std::make_shared<BasicTypeNode>("i32");
+            binary->type = ty;
+            return ty;
           }
           if (op == "<" || op == "<=" || op == ">" || op == ">=" ||
               op == "==" || op == "!=") {
-            return std::make_shared<BasicTypeNode>("bool");
+            const auto ty = std::make_shared<BasicTypeNode>("bool");
+            binary->type = ty;
+            return ty;
           }
           if (op == "..") {
-            return std::make_shared<RangeTypeNode>(binary->left, binary->right,
-                                                   false);
+            const auto ty = std::make_shared<RangeTypeNode>(
+                binary->left, binary->right, false);
+            binary->type = ty;
+            return ty;
           }
           if (op == "..=") {
-            return std::make_shared<RangeTypeNode>(binary->left, binary->right,
-                                                   true);
+            const auto ty = std::make_shared<RangeTypeNode>(
+                binary->left, binary->right, true);
+            binary->type = ty;
+            return ty;
           }
           if (op == "=" || "+=" || "-=" || "*=" || "/=" || "%=") {
             if (const auto identifier =
@@ -371,7 +410,7 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
                 return nullptr;
               }
               if (symbol->mutability) {
-                return std::make_shared<BasicTypeNode>("bool");
+                return nullptr;
               }
               LOG(FATAL) << "Try to assign to immutable symbol";
               return nullptr;
@@ -382,11 +421,15 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
         }
         if (l_basic->type == "f32" && r_basic->type == "f32") {
           if (op == "+" || op == "-" || op == "*" || op == "/") {
-            return std::make_shared<BasicTypeNode>("f32");
+            const auto ty = std::make_shared<BasicTypeNode>("f32");
+            binary->type = ty;
+            return ty;
           }
           if (op == "<" || op == "<=" || op == ">" || op == ">=" ||
               op == "==" || op == "!=") {
-            return std::make_shared<BasicTypeNode>("bool");
+            const auto ty = std::make_shared<BasicTypeNode>("bool");
+            binary->type = ty;
+            return ty;
           }
           if (op == "=" || "+=" || "-=" || "*=" || "/=" || "%=") {
             if (const auto identifier =
@@ -412,7 +455,7 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
                 return nullptr;
               }
               if (symbol->mutability) {
-                return std::make_shared<BasicTypeNode>("bool");
+                return nullptr;
               }
               LOG(FATAL) << "Try to assign to immutable symbol";
               return nullptr;
@@ -423,10 +466,14 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
         }
         if (l_basic->type == "bool" && r_basic->type == "bool") {
           if (op == "&&" || op == "||") {
-            return std::make_shared<BasicTypeNode>("bool");
+            const auto ty = std::make_shared<BasicTypeNode>("bool");
+            binary->type = ty;
+            return ty;
           }
           if (op == "==" || op == "!=") {
-            return std::make_shared<BasicTypeNode>("bool");
+            const auto ty = std::make_shared<BasicTypeNode>("bool");
+            binary->type = ty;
+            return ty;
           }
           if (op == "=") {
             if (const auto identifier =
@@ -452,7 +499,7 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
                 return nullptr;
               }
               if (symbol->mutability) {
-                return std::make_shared<BasicTypeNode>("bool");
+                return nullptr;
               }
               LOG(FATAL) << "Try to assign to immutable symbol";
               return nullptr;
@@ -464,7 +511,9 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
         if (l_basic->type == "char" && r_basic->type == "char") {
           if (op == "<" || op == "<=" || op == ">" || op == ">=" ||
               op == "==" || op == "!=") {
-            return std::make_shared<BasicTypeNode>("bool");
+            const auto ty = std::make_shared<BasicTypeNode>("bool");
+            binary->type = ty;
+            return ty;
           }
           if (op == "=") {
             if (const auto identifier =
@@ -490,7 +539,7 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
                 return nullptr;
               }
               if (symbol->mutability) {
-                return std::make_shared<BasicTypeNode>("bool");
+                return nullptr;
               }
               LOG(FATAL) << "Try to assign to immutable symbol";
               return nullptr;
@@ -511,17 +560,23 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
     if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(exp)) {
       if (basic->type == "i32") {
         if (unary->op == "+" || unary->op == "-") {
-          return std::make_shared<BasicTypeNode>("i32");
+          const auto ty = std::make_shared<BasicTypeNode>("i32");
+          unary->type = ty;
+          return ty;
         }
       }
       if (basic->type == "f32") {
         if (unary->op == "+" || unary->op == "-") {
-          return std::make_shared<BasicTypeNode>("f32");
+          const auto ty = std::make_shared<BasicTypeNode>("f32");
+          unary->type = ty;
+          return ty;
         }
       }
       if (basic->type == "bool") {
         if (unary->op == "!") {
-          return std::make_shared<BasicTypeNode>("bool");
+          const auto ty = std::make_shared<BasicTypeNode>("bool");
+          unary->type = ty;
+          return ty;
         }
       }
       LOG(FATAL) << "Try to perform unary operation on invalid type";
@@ -549,7 +604,10 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
       if (const auto count_type_basic =
               std::dynamic_pointer_cast<BasicTypeNode>(count_type)) {
         if (count_type_basic->type == "i32") {
-          return std::make_shared<ArrayTypeNode>(element_type, array->count);
+          const auto ty =
+              std::make_shared<ArrayTypeNode>(element_type, array->count);
+          array->type = ty;
+          return ty;
         }
         LOG(FATAL) << "Array count is not an integer";
         return nullptr;
@@ -588,9 +646,11 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
         return nullptr;
       }
     }
-    return std::make_shared<ArrayTypeNode>(
+    const auto ty = std::make_shared<ArrayTypeNode>(
         first_element_type, std::make_shared<ConstantExpressionNode>(
                                 static_cast<int>(array->elements.size())));
+    array->type = ty;
+    return ty;
   }
   if (const auto array_access =
           std::dynamic_pointer_cast<ArrayAccessExpressionNode>(node)) {
@@ -624,16 +684,24 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
       return nullptr;
     }
     if (symbol->type == SymbolType::INT) {
-      return std::make_shared<BasicTypeNode>("i32");
+      const auto ty = std::make_shared<BasicTypeNode>("i32");
+      array_access->type = ty;
+      return ty;
     }
     if (symbol->type == SymbolType::FLOAT) {
-      return std::make_shared<BasicTypeNode>("f32");
+      const auto ty = std::make_shared<BasicTypeNode>("f32");
+      array_access->type = ty;
+      return ty;
     }
     if (symbol->type == SymbolType::CHAR) {
-      return std::make_shared<BasicTypeNode>("char");
+      const auto ty = std::make_shared<BasicTypeNode>("char");
+      array_access->type = ty;
+      return ty;
     }
     if (symbol->type == SymbolType::BOOL) {
-      return std::make_shared<BasicTypeNode>("bool");
+      const auto ty = std::make_shared<BasicTypeNode>("bool");
+      array_access->type = ty;
+      return ty;
     }
     LOG(FATAL) << "Unknown symbol type";
     return nullptr;
@@ -743,11 +811,13 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       if (op == "..") {
         const auto res = Range{l, r, false};
         binary->value = res;
+        binary->is_constant = false;
         return {res};
       }
       if (op == "..=") {
         const auto res = Range{l, r, true};
         binary->value = res;
+        binary->is_constant = false;
         return {res};
       }
       if (op == "=") {

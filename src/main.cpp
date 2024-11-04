@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
   parser.parse();
 
   auto ast = carlos::ASTDisplay(carlos::root, 2);
-  ast.print_ast();
+  // ast.print_ast();
 
   auto table = carlos::SymbolTable(carlos::root, false);
   table.process();
