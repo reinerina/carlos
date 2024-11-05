@@ -1,5 +1,6 @@
 #include <fstream>
 #include <cxxopts.hpp>
+#include <cstdlib>
 #include <glog/logging.h>
 #include "carlos.lex.h"
 #include "carlos.parser.h"
@@ -15,10 +16,10 @@ int main(int argc, char *argv[]) {
 
   auto &ops = *options;
 
-  ops.set_width(70).add_options()                               //
-      ("h,help", "Print help")                                  //
-      ("i,input", "Input file", cxxopts::value<std::string>())  //
-      ("m,mode", "Mode", cxxopts::value<std::string>())         //
+  ops.set_width(70).add_options()                                     //
+      ("h,help", "Print help")                                        //
+      ("i,input", "Input file", cxxopts::value<std::string>())        //
+      ("m,mode", "Mode: ast, st, ir", cxxopts::value<std::string>())  //
       ("o,output", "Output file", cxxopts::value<std::string>());
 
   auto result = ops.parse(argc, argv);
@@ -34,6 +35,22 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  auto mode = 2;
+
+  if (result.count("mode") != 0) {
+    if (const auto m = result["mode"].as<std::string>(); m == "ast") {
+      mode = 0;
+    } else if (m == "st") {
+      mode = 1;
+    } else if (m == "ir") {
+      mode = 2;
+    } else {
+      std::cerr << "Unknown mode: " << m << std::endl;
+      std::cerr << "Please use -h or --help for more information" << std::endl;
+      return 1;
+    }
+  }
+
   auto path = result["input"].as<std::string>();
 
   auto file = std::ifstream(path);
@@ -43,14 +60,25 @@ int main(int argc, char *argv[]) {
   }
 
   std::cin.rdbuf(file.rdbuf());
+
   auto lexer = carlos::CarlosLexer(std::cin);
   auto parser = carlos::CarlosParser(lexer);
   parser.parse();
 
   auto ast = carlos::ASTDisplay(carlos::root, 2);
-  // ast.print_ast();
+  if (mode == 0) {
+    ast.print_ast();
+    file.close();
+    return 0;
+  }
 
-  auto table = carlos::SymbolTable(carlos::root, false);
+  auto table = carlos::SymbolTable(carlos::root, mode == 1);
+  if (mode == 1) {
+    table.process();
+    file.close();
+    return 0;
+  }
+
   table.process();
 
   auto gen = carlos::IRGen(carlos::root);
@@ -68,6 +96,14 @@ int main(int argc, char *argv[]) {
     std::cout.rdbuf(original);
     output_file.close();
     file.close();
+    const auto output_exe = output.substr(0, output.find_last_of('.'));
+    if (output_exe != output) {
+      const auto command = "clang " + output + " -o " + output_exe;
+      system(command.c_str());
+    } else {
+      const auto command = "clang " + output + " -o " + output_exe + ".out";
+      system(command.c_str());
+    }
     return 0;
   }
 
@@ -83,6 +119,15 @@ int main(int argc, char *argv[]) {
   std::cout.rdbuf(original);
   output_file.close();
   file.close();
+
+  const auto output_exe = output.substr(0, output.find_last_of('.'));
+  if (output_exe != output) {
+    const auto command = "clang " + output + " -o " + output_exe;
+    system(command.c_str());
+  } else {
+    const auto command = "clang " + output + " -o " + output_exe + ".out";
+    system(command.c_str());
+  }
 
   return 0;
 }
