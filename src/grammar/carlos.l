@@ -16,12 +16,12 @@ using Token = CarlosParser::token;
 %x IN_COMMENT
 
 ENTRYPOINT (fn[ ]+main[ ]*\([ ]*\)[ ]*)
-INTEGER ([+-]?0x[0-9a-fA-F]+)|([+-]?0b[01]+)|([+-]?[0-9]+)
-FLOAT ([+-]?[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?)
+INTEGER (0x[0-9a-fA-F]+)|(0b[01]+)|([0-9]+)
+FLOAT ([0-9]+\.[0-9]+([eE][+-]?[0-9]+)?)
 CHAR ('(\\.|[^\\'])')
 IDENTIFIER [a-zA-Z_][a-zA-Z0-9_]*
 OPERATOR ([+*-/%=,;!<>(){}:\.\[\]])
-COMMENT (\/\/[^\n]*)
+COMMENT (\/\/.*)
 BEGIN_COMMENT (\/\*)
 END_COMMENT (\*\/)
 WS ([ \t\r\a]+)

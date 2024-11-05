@@ -63,13 +63,9 @@ void SymbolTable::process_statement(
         if (basic_type->type != "bool") {
           LOG(FATAL) << "If condition is not a boolean";
         } else {
-          in_control_flow = true;
           process_statement(if_stat->then_body);
-          in_control_flow = false;
           if (if_stat->else_body != nullptr) {
-            in_control_flow = true;
             process_statement(if_stat->else_body);
-            in_control_flow = false;
           }
         }
       } else {
@@ -152,78 +148,6 @@ void SymbolTable::process_statement(
     }
     if (const auto cur_scope = current_scope(); return_type != ret_ty) {
       LOG(FATAL) << "Return type mismatch";
-    }
-  } else if (const auto call =
-                 std::dynamic_pointer_cast<CallStatementNode>(statement)) {
-    if (call->name == "stdin") {
-      for (const auto &exp : call->expressions) {
-        if (const auto id =
-                std::dynamic_pointer_cast<IdentifierExpressionNode>(exp)) {
-          const auto type = infer_type(exp);
-          if (const auto basic =
-                  std::dynamic_pointer_cast<BasicTypeNode>(type)) {
-            if (basic->type != "i32" && basic->type != "f32" &&
-                basic->type != "char" && basic->type != "bool") {
-              LOG(FATAL) << "Unknown stdin type";
-            }
-          } else {
-            LOG(FATAL) << "Unknown stdin type";
-          }
-          if (const auto value = eval_value(exp);
-              std::holds_alternative<std::nullptr_t>(value)) {
-            LOG(FATAL) << "Unknown stdin value";
-          }
-          if (auto symbol = get_symbol(id->name); !symbol->mutability) {
-            LOG(FATAL) << "Try to assign to immutable symbol";
-          }
-        } else if (const auto ac =
-                       std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
-                           exp)) {
-          const auto type = infer_type(exp);
-          if (const auto array =
-                  std::dynamic_pointer_cast<ArrayTypeNode>(type)) {
-            if (const auto basic =
-                    std::dynamic_pointer_cast<BasicTypeNode>(array->type)) {
-              if (basic->type != "i32" && basic->type != "f32" &&
-                  basic->type != "char" && basic->type != "bool") {
-                LOG(FATAL) << "Unknown stdin type";
-              }
-            } else {
-              LOG(FATAL) << "Unknown stdin type";
-            }
-            if (auto symbol = get_symbol(ac->array->name);
-                !symbol->mutability) {
-              LOG(FATAL) << "Try to assign to immutable symbol";
-            }
-          } else {
-            LOG(FATAL) << "Unknown stdin type";
-          }
-          if (auto symbol = get_symbol(ac->array->name); !symbol->mutability) {
-            LOG(FATAL) << "Try to assign to immutable symbol";
-          }
-
-        } else {
-          LOG(FATAL) << "Call stdin with non-identifier";
-        }
-      }
-    } else if (call->name == "stdout") {
-      for (const auto &exp : call->expressions) {
-        const auto type = infer_type(exp);
-        if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
-          if (basic->type != "i32" && basic->type != "f32" &&
-              basic->type != "char" && basic->type != "bool") {
-            LOG(FATAL) << "Unknown stdout type";
-          }
-        } else {
-          LOG(FATAL) << "Unknown stdout type";
-        }
-        const auto value = eval_value(exp);
-        if (std::holds_alternative<std::nullptr_t>(value)) {
-          LOG(FATAL) << "Unknown stdout value";
-        }
-      }
-    } else {
-      LOG(FATAL) << "Unknown call statement";
     }
   } else {
     LOG(FATAL) << "Unknown statement type";
@@ -704,6 +628,74 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
       return ty;
     }
     LOG(FATAL) << "Unknown symbol type";
+    return nullptr;
+  }
+  if (const auto call = std::dynamic_pointer_cast<CallExpressionNode>(node)) {
+    if (call->name == "stdin") {
+      for (const auto &exp : call->expressions) {
+        if (const auto id =
+                std::dynamic_pointer_cast<IdentifierExpressionNode>(exp)) {
+          const auto type = infer_type(exp);
+          if (const auto basic =
+                  std::dynamic_pointer_cast<BasicTypeNode>(type)) {
+            if (basic->type != "i32" && basic->type != "f32" &&
+                basic->type != "char" && basic->type != "bool") {
+              LOG(FATAL) << "Unknown stdin type";
+            }
+          } else {
+            LOG(FATAL) << "Unknown stdin type";
+          }
+          if (const auto value = eval_value(exp);
+              std::holds_alternative<std::nullptr_t>(value)) {
+            LOG(FATAL) << "Unknown stdin value";
+          }
+          if (auto symbol = get_symbol(id->name); !symbol->mutability) {
+            LOG(FATAL) << "Try to assign to immutable symbol";
+          }
+        } else if (const auto ac =
+                       std::dynamic_pointer_cast<ArrayAccessExpressionNode>(
+                           exp)) {
+          const auto type = infer_type(exp);
+          const auto symbol = get_symbol(ac->array->name);
+          if (symbol->mutability == false) {
+            LOG(FATAL) << "Try to assign to immutable symbol";
+          }
+          if (symbol->type != SymbolType::INT &&
+              symbol->type != SymbolType::FLOAT &&
+              symbol->type != SymbolType::CHAR &&
+              symbol->type != SymbolType::BOOL) {
+            LOG(FATAL) << "Unknown stdin type";
+          }
+
+        } else {
+          LOG(FATAL) << "Call stdin with non-identifier";
+        }
+      }
+      const auto ty = std::make_shared<BasicTypeNode>("i32");
+      call->type = ty;
+      return ty;
+    }
+    if (call->name == "stdout") {
+      for (const auto &exp : call->expressions) {
+        const auto type = infer_type(exp);
+        if (const auto basic = std::dynamic_pointer_cast<BasicTypeNode>(type)) {
+          if (basic->type != "i32" && basic->type != "f32" &&
+              basic->type != "char" && basic->type != "bool") {
+            LOG(FATAL) << "Unknown stdout type";
+          }
+        } else {
+          LOG(FATAL) << "Unknown stdout type";
+        }
+        const auto value = eval_value(exp);
+        if (std::holds_alternative<std::nullptr_t>(value)) {
+          LOG(FATAL) << "Unknown stdout value";
+        }
+      }
+      const auto ty = std::make_shared<BasicTypeNode>("i32");
+      call->type = ty;
+      return ty;
+    }
+    LOG(FATAL) << "Unknown call statement";
     return nullptr;
   }
 
@@ -1521,6 +1513,10 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
         LOG(FATAL) << "Empty array";
         return {};
       }
+      if (!check_expression(array->count)) {
+        LOG(FATAL) << "Array count is not a constant";
+        return {};
+      }
       const auto element = eval_value(array->element);
       const auto count = eval_value(array->count);
       if (std::holds_alternative<std::nullptr_t>(element) ||
@@ -1563,6 +1559,7 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
       LOG(FATAL) << "Unknown array";
       return {};
     }
+    array_access->array->value = symbol->value;
     if (std::holds_alternative<std::shared_ptr<Array>>(
             array_access->array->value)) {
       const auto array =
@@ -1600,6 +1597,38 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
     LOG(FATAL) << "Try to access non-array";
     return {};
   }
+  if (const auto call = std::dynamic_pointer_cast<CallExpressionNode>(node)) {
+    if (call->name == "stdin") {
+      for (const auto &exp : call->expressions) {
+        const auto value = eval_value(exp);
+        if (std::holds_alternative<std::nullptr_t>(value)) {
+          LOG(FATAL) << "Unknown stdin value";
+        }
+        if (std::holds_alternative<Range>(value)) {
+          LOG(FATAL) << "Range value cannot be read from stdin";
+        }
+        if (std::holds_alternative<std::shared_ptr<Array>>(value)) {
+          LOG(FATAL) << "Array value cannot be read from stdin";
+        }
+      }
+      constexpr auto res = 1;
+      call->value = res;
+      return {res};
+    }
+    if (call->name == "stdout") {
+      for (const auto &exp : call->expressions) {
+        if (const auto value = eval_value(exp);
+            std::holds_alternative<std::nullptr_t>(value)) {
+          LOG(FATAL) << "Unknown stdout value";
+        }
+      }
+      constexpr auto res = 1;
+      call->value = res;
+      return {res};
+    }
+    LOG(FATAL) << "Unknown call statement";
+    return nullptr;
+  }
 
   LOG(FATAL) << "Unknown expression type";
   return std::variant<std::nullptr_t, int, bool, char, float, Range,
@@ -1634,9 +1663,7 @@ bool SymbolTable::check_array_type(
       if (basic_type->type == other_basic_type->type) {
         return true;
       }
-      return false;
     }
-    return false;
   }
   return false;
 }

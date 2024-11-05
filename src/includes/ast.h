@@ -192,6 +192,39 @@ class ArrayExpressionNode final : public ExpressionNode {
                       std::shared_ptr<ExpressionNode> count)
       : element(std::move(element)), count(std::move(count)) {}
 
+  void get_all_elements(
+      std::vector<std::shared_ptr<ExpressionNode>> &result) const {
+    if (elements.empty()) {
+      const auto c = std::get<int>(count->value);
+      for (auto i = 0; i < c; i++) {
+        if (const auto inner_array =
+                std::dynamic_pointer_cast<ArrayExpressionNode>(element)) {
+          inner_array->get_all_elements(result);
+        } else {
+          if (elements.empty()) {
+            const auto ct = std::get<int>(count->value);
+            for (auto j = 0; j < ct; j++) {
+              result.push_back(element);
+            }
+          } else {
+            for (const auto &e : elements) {
+              result.push_back(e);
+            }
+          }
+        }
+      }
+    } else {
+      for (const auto &e : elements) {
+        if (const auto inner_array =
+                std::dynamic_pointer_cast<ArrayExpressionNode>(e)) {
+          inner_array->get_all_elements(result);
+        } else {
+          result.push_back(e);
+        }
+      }
+    }
+  }
+
   std::vector<std::shared_ptr<ExpressionNode>> elements;
   std::shared_ptr<ExpressionNode> element, count;
 
@@ -242,6 +275,16 @@ class ArrayAccessExpressionNode final : public ExpressionNode {
 
   std::shared_ptr<IdentifierExpressionNode> array;
   std::vector<std::shared_ptr<ExpressionNode>> indices;
+};
+
+class CallExpressionNode final : public ExpressionNode {
+ public:
+  ~CallExpressionNode() override = default;
+  CallExpressionNode(std::string name,
+                     std::vector<std::shared_ptr<ExpressionNode>> expressions)
+      : name(std::move(name)), expressions(std::move(expressions)) {}
+  std::string name;
+  std::vector<std::shared_ptr<ExpressionNode>> expressions;
 };
 
 class RangeTypeNode final : public TypeNode {
@@ -332,16 +375,6 @@ class StatementsNode final : public StatementNode {
       : statements(std::move(statements)) {}
 
   std::vector<std::shared_ptr<StatementNode>> statements;
-};
-
-class CallStatementNode final : public StatementNode {
- public:
-  ~CallStatementNode() override = default;
-  CallStatementNode(std::string name,
-                    std::vector<std::shared_ptr<ExpressionNode>> expressions)
-      : name(std::move(name)), expressions(std::move(expressions)) {}
-  std::string name;
-  std::vector<std::shared_ptr<ExpressionNode>> expressions;
 };
 
 class IfStatementNode final : public StatementNode {

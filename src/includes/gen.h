@@ -24,13 +24,13 @@ class IRGen {
 
   void gen_declaration(const std::shared_ptr<DeclarationStatementNode> &node);
 
-  void gen_call(const std::shared_ptr<CallStatementNode> &node);
-
   void gen_if(const std::shared_ptr<IfStatementNode> &node);
 
   void gen_while(const std::shared_ptr<WhileStatementNode> &node);
 
   void gen_for(const std::shared_ptr<ForStatementNode> &node);
+
+  void gen_control(const std::shared_ptr<ControlStatementNode> &node) const;
 
   int gen_expression(const std::shared_ptr<ExpressionNode> &node);
 
@@ -96,11 +96,14 @@ class IRGen {
   std::vector<std::unordered_map<std::string, std::shared_ptr<Symbol>>>
       scopes{};
   std::unordered_map<std::string, int> labels{};
+  std::vector<int> control_stage{};
+  int control_stage_index{};
   int temp_label{};
   int while_label{};
   int if_label{};
   int begin_if{};
   int for_label{};
+  bool array_pointer{};
   std::tuple<int, int, bool> range_labels{};
   std::unordered_map<std::string, std::shared_ptr<Symbol>>
       symbols_in_next_scope{};

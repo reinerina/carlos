@@ -435,7 +435,7 @@ namespace carlos {
       char dummy6[sizeof (std::shared_ptr<ArrayTypeNode>)];
 
       // call
-      char dummy7[sizeof (std::shared_ptr<CallStatementNode>)];
+      char dummy7[sizeof (std::shared_ptr<CallExpressionNode>)];
 
       // constant
       char dummy8[sizeof (std::shared_ptr<ConstantExpressionNode>)];
@@ -773,7 +773,7 @@ namespace carlos {
         break;
 
       case symbol_kind::S_call: // call
-        value.move< std::shared_ptr<CallStatementNode> > (std::move (that.value));
+        value.move< std::shared_ptr<CallExpressionNode> > (std::move (that.value));
         break;
 
       case symbol_kind::S_constant: // constant
@@ -945,13 +945,13 @@ namespace carlos {
 #endif
 
 #if 201103L <= YY_CPLUSPLUS
-      basic_symbol (typename Base::kind_type t, std::shared_ptr<CallStatementNode>&& v, location_type&& l)
+      basic_symbol (typename Base::kind_type t, std::shared_ptr<CallExpressionNode>&& v, location_type&& l)
         : Base (t)
         , value (std::move (v))
         , location (std::move (l))
       {}
 #else
-      basic_symbol (typename Base::kind_type t, const std::shared_ptr<CallStatementNode>& v, const location_type& l)
+      basic_symbol (typename Base::kind_type t, const std::shared_ptr<CallExpressionNode>& v, const location_type& l)
         : Base (t)
         , value (v)
         , location (l)
@@ -1203,7 +1203,7 @@ switch (yykind)
         break;
 
       case symbol_kind::S_call: // call
-        value.template destroy< std::shared_ptr<CallStatementNode> > ();
+        value.template destroy< std::shared_ptr<CallExpressionNode> > ();
         break;
 
       case symbol_kind::S_constant: // constant
@@ -2818,7 +2818,7 @@ switch (yykind)
     /// Constants.
     enum
     {
-      yylast_ = 568,     ///< Last index in yytable_.
+      yylast_ = 536,     ///< Last index in yytable_.
       yynnts_ = 26,  ///< Number of nonterminal symbols.
       yyfinal_ = 6 ///< Termination state number.
     };
@@ -2994,7 +2994,7 @@ switch (yykind)
         break;
 
       case symbol_kind::S_call: // call
-        value.copy< std::shared_ptr<CallStatementNode> > (YY_MOVE (that.value));
+        value.copy< std::shared_ptr<CallExpressionNode> > (YY_MOVE (that.value));
         break;
 
       case symbol_kind::S_constant: // constant
@@ -3114,7 +3114,7 @@ switch (yykind)
         break;
 
       case symbol_kind::S_call: // call
-        value.move< std::shared_ptr<CallStatementNode> > (YY_MOVE (s.value));
+        value.move< std::shared_ptr<CallExpressionNode> > (YY_MOVE (s.value));
         break;
 
       case symbol_kind::S_constant: // constant

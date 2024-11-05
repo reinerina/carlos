@@ -31,7 +31,7 @@ class Array {
 
   std::variant<std::nullptr_t, int, bool, char, float, Range,
                std::shared_ptr<Array>>
-  get(std::vector<int> &indices) {
+  get(const std::vector<int> &indices) {
     return get_inner(values, indices, 0);
   }
 
@@ -56,7 +56,7 @@ class Array {
   }
 
   [[nodiscard]] std::vector<int> dimensions() {
-    std::vector<int> dims;
+    auto dims = std::vector<int>{};
     auto inner = &values;
     while (true) {
       dims.push_back(inner->size());
@@ -68,6 +68,14 @@ class Array {
     }
     return dims;
   }
+
+  std::variant<std::nullptr_t, int, bool, char, float, Range,
+               std::shared_ptr<Array>>
+  basic_value() {
+    const auto indices = std::vector(dimensions().size(), 0);
+    return get(indices);
+  }
+
   int size;
 
   std::vector<std::variant<std::nullptr_t, int, bool, char, float, Range,
@@ -79,7 +87,7 @@ class Array {
                       std::shared_ptr<Array>>
   get_inner(std::vector<std::variant<std::nullptr_t, int, bool, char, float,
                                      Range, std::shared_ptr<Array>>> &vals,
-            std::vector<int> &indices, const int index) {
+            const std::vector<int> &indices, const int index) {
     const auto idx = indices[index];
 
     if (index == indices.size() - 1) {
