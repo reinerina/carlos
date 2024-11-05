@@ -30,7 +30,7 @@ class IRGen {
 
   void gen_for(const std::shared_ptr<ForStatementNode> &node);
 
-  void gen_control(const std::shared_ptr<ControlStatementNode> &node) const;
+  void gen_control(const std::shared_ptr<ControlStatementNode> &node);
 
   int gen_expression(const std::shared_ptr<ExpressionNode> &node);
 
@@ -104,6 +104,7 @@ class IRGen {
   int begin_if{};
   int for_label{};
   bool array_pointer{};
+  bool on_break{};
   std::tuple<int, int, bool> range_labels{};
   std::unordered_map<std::string, std::shared_ptr<Symbol>>
       symbols_in_next_scope{};

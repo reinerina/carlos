@@ -1,16 +1,16 @@
 fn main() {
-    let mut x = [[false; 3]; 3];
-    x[2][1] = true;
-    for i in 0..3 {
-        for j in 0..3 {
-            if x[i][j] == true {
-                stdout('X');
-                continue;
-                stdout('Y');
-            } else {
-                stdout('O');
-            }
-        }
-        stdout('\n');
+    let mut x : i32;
+    stdin(x);
+    let mut a = 1;
+    let mut b = 1;
+    for i in 0..x{
+    if x > 2 {
+        stdout('H');
+        break;
+    } else if x < 0 {
+        stdout('E');
+    } else {
+        stdout('L');
     }
+}
 }

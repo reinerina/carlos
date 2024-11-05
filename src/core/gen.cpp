@@ -58,15 +58,27 @@ void IRGen::gen_statement(const std::shared_ptr<StatementNode> &node) {
     exit_scope();
   } else if (const auto declaration =
                  std::dynamic_pointer_cast<DeclarationStatementNode>(node)) {
+    if (on_break) {
+      return;
+    }
     gen_declaration(declaration);
   } else if (const auto expression =
                  std::dynamic_pointer_cast<ExpressionStatementNode>(node)) {
+    if (on_break) {
+      return;
+    }
     gen_expression(expression->expression);
   } else if (const auto if_stat =
                  std::dynamic_pointer_cast<IfStatementNode>(node)) {
+    if (on_break && begin_if == 0) {
+      return;
+    }
     gen_if(if_stat);
   } else if (const auto while_stat =
                  std::dynamic_pointer_cast<WhileStatementNode>(node)) {
+    if (on_break) {
+      return;
+    }
     if (control_stage_index == 0) {
       control_stage.clear();
     }
@@ -76,6 +88,9 @@ void IRGen::gen_statement(const std::shared_ptr<StatementNode> &node) {
     control_stage_index -= 1;
   } else if (const auto for_stat =
                  std::dynamic_pointer_cast<ForStatementNode>(node)) {
+    if (on_break) {
+      return;
+    }
     if (control_stage_index == 0) {
       control_stage.clear();
     }
@@ -85,6 +100,9 @@ void IRGen::gen_statement(const std::shared_ptr<StatementNode> &node) {
     control_stage_index -= 1;
   } else if (const auto control =
                  std::dynamic_pointer_cast<ControlStatementNode>(node)) {
+    if (on_break) {
+      return;
+    }
     gen_control(control);
   } else {
     LOG(FATAL) << "Unknown statement type";
@@ -168,44 +186,69 @@ void IRGen::gen_declaration(
 }
 void IRGen::gen_while(const std::shared_ptr<WhileStatementNode> &node) {
   const auto while_label = next_while_label();
-  std::cout << "br label %while" << while_label << ".cond\n";
+  if (!on_break) {
+    std::cout << "br label %while" << while_label << ".cond\n";
+  }
+  on_break = false;
   std::cout << "while" << while_label << ".cond:\n";
-  const auto cond_label = gen_expression(node->condition);
-  std::cout << "br i1 %" << cond_label << ", label %while" << while_label
-            << ".body, label %while" << while_label << ".end\n";
+  if (!on_break) {
+    const auto cond_label = gen_expression(node->condition);
+    std::cout << "br i1 %" << cond_label << ", label %while" << while_label
+              << ".body, label %while" << while_label << ".end\n";
+  }
+  on_break = false;
   std::cout << "while" << while_label << ".body:\n";
   gen_statement(node->body);
-  std::cout << "br label %while" << while_label << ".cond\n";
+  if (!on_break) {
+    std::cout << "br label %while" << while_label << ".cond\n";
+  }
+  on_break = false;
   std::cout << "while" << while_label << ".end:\n";
 }
 
 void IRGen::gen_if(const std::shared_ptr<IfStatementNode> &node) {
   if (node->condition) {
     const auto if_label = next_if_label();
-    const auto condition_label = gen_expression(node->condition);
     if (begin_if == 0) {
       begin_if = if_label;
     }
     if (node->else_body) {
-      std::cout << "br i1 %" << condition_label << ", label %if" << if_label
-                << ".then, label %if" << if_label << ".else\n";
+      if (!on_break) {
+        const auto condition_label = gen_expression(node->condition);
+        std::cout << "br i1 %" << condition_label << ", label %if" << if_label
+                  << ".then, label %if" << if_label << ".else\n";
+      }
+      on_break = false;
       std::cout << "if" << if_label << ".then:\n";
       gen_statement(node->then_body);
-      std::cout << "br label %if" << begin_if << ".end\n";
+      if (!on_break) {
+        std::cout << "br label %if" << begin_if << ".end\n";
+      }
+      on_break = false;
       std::cout << "if" << if_label << ".else:\n";
       gen_statement(node->else_body);
     } else {
-      std::cout << "br i1 %" << condition_label << ", label %if" << if_label
-                << ".then, label %if" << begin_if << ".end\n";
+      if (!on_break) {
+        const auto condition_label = gen_expression(node->condition);
+        std::cout << "br i1 %" << condition_label << ", label %if" << if_label
+                  << ".then, label %if" << begin_if << ".end\n";
+      }
+      on_break = false;
       std::cout << "if" << if_label << ".then:\n";
       gen_statement(node->then_body);
-      std::cout << "br label %if" << begin_if << ".end\n";
+      if (!on_break) {
+        std::cout << "br label %if" << begin_if << ".end\n";
+      }
+      on_break = false;
       std::cout << "if" << begin_if << ".end:\n";
       begin_if = 0;
     }
   } else {
     gen_statement(node->then_body);
-    std::cout << "br label %if" << begin_if << ".end\n";
+    if (!on_break) {
+      std::cout << "br label %if" << begin_if << ".end\n";
+    }
+    on_break = false;
     std::cout << "if" << begin_if << ".end:\n";
     begin_if = 0;
   }
@@ -219,14 +262,26 @@ void IRGen::gen_for(const std::shared_ptr<ForStatementNode> &node) {
   const auto range_label = gen_expression(node->iterator);
   CHECK_EQ(range_label, 0);
   const auto start_label = std::get<0>(range_labels);
+  const auto temp_start_label = next_label();
   const auto end_label = std::get<1>(range_labels);
   const auto inclusive = std::get<2>(range_labels);
+  const auto temp_alias = next_label();
+  const auto add_label = next_label();
   const auto alias_label = next_label();
   const auto cmp_label = next_label();
   std::cout << "%" << alias << " = alloca i32\n";
-  std::cout << "store i32 %" << start_label << ", i32* %" << alias << "\n";
-  std::cout << "br label %for" << for_label << ".cond\n";
+  std::cout << "%" << temp_start_label << " = sub i32 %" << start_label
+            << ", 1\n";
+  std::cout << "store i32 %" << temp_start_label << ", i32* %" << alias << "\n";
+  if (!on_break) {
+    std::cout << "br label %for" << for_label << ".cond\n";
+  }
+  on_break = false;
   std::cout << "for" << for_label << ".cond:\n";
+
+  std::cout << "%" << temp_alias << " = load i32, i32* %" << alias << "\n";
+  std::cout << "%" << add_label << " = add i32 %" << temp_alias << ", 1\n";
+  std::cout << "store i32 %" << add_label << ", i32* %" << alias << "\n";
   if (inclusive) {
     std::cout << "%" << alias_label << " = load i32, i32* %" << alias << "\n";
     std::cout << "%" << cmp_label << " = icmp sle i32 %" << alias_label << ", %"
@@ -236,22 +291,22 @@ void IRGen::gen_for(const std::shared_ptr<ForStatementNode> &node) {
     std::cout << "%" << cmp_label << " = icmp slt i32 %" << alias_label << ", %"
               << end_label << "\n";
   }
-  std::cout << "br i1 %" << cmp_label << ", label %for" << for_label
-            << ".body, label %for" << for_label << ".end\n";
+  if (!on_break) {
+    std::cout << "br i1 %" << cmp_label << ", label %for" << for_label
+              << ".body, label %for" << for_label << ".end\n";
+  }
+  on_break = false;
   std::cout << "for" << for_label << ".body:\n";
   gen_statement(node->body);
-  const auto temp_alias = next_label();
-  const auto add_label = next_label();
-  std::cout << "%" << temp_alias << " = load i32, i32* %" << alias << "\n";
-  std::cout << "%" << add_label << " = add i32 %" << temp_alias << ", 1\n";
-  std::cout << "store i32 %" << add_label << ", i32* %" << alias << "\n";
-  std::cout << "br label %for" << for_label << ".cond\n";
+  if (!on_break) {
+    std::cout << "br label %for" << for_label << ".cond\n";
+  }
+  on_break = false;
   std::cout << "for" << for_label << ".end:\n";
   range_labels = {0, 0, false};
 }
 
-void IRGen::gen_control(
-    const std::shared_ptr<ControlStatementNode> &node) const {
+void IRGen::gen_control(const std::shared_ptr<ControlStatementNode> &node) {
   const auto current_control = control_stage.back();
   if (current_control == 1) {
     if (node->type == "break") {
@@ -259,12 +314,14 @@ void IRGen::gen_control(
     } else if (node->type == "continue") {
       std::cout << "br label %while" << current_while_label() << ".cond\n";
     }
+    on_break = true;
   } else if (current_control == 2) {
     if (node->type == "break") {
       std::cout << "br label %for" << current_for_label() << ".end\n";
     } else if (node->type == "continue") {
       std::cout << "br label %for" << current_for_label() << ".cond\n";
     }
+    on_break = true;
   }
 }
 
