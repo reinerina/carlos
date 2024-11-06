@@ -113,24 +113,27 @@ void IRGen::gen_declaration(
     const std::shared_ptr<DeclarationStatementNode> &node) {
   const auto label = get_label(node->identifier->name);
   const auto alias = node->identifier->name + std::to_string(label);
-  add_symbol(node->identifier->name, alias, node->identifier->value);
   if (const auto value = &node->identifier->value;
       std::holds_alternative<int>(*value)) {
     const auto exp_label = gen_expression(node->expression);
     std::cout << "%" << alias << " = alloca i32\n";
     std::cout << "store i32 %" << exp_label << ", i32* %" << alias << "\n";
+    add_symbol(node->identifier->name, alias, node->identifier->value);
   } else if (std::holds_alternative<float>(*value)) {
     const auto exp_label = gen_expression(node->expression);
     std::cout << "%" << alias << " = alloca float\n";
     std::cout << "store float %" << exp_label << ", float* %" << alias << "\n";
+    add_symbol(node->identifier->name, alias, node->identifier->value);
   } else if (std::holds_alternative<char>(*value)) {
     const auto exp_label = gen_expression(node->expression);
     std::cout << "%" << alias << " = alloca i8\n";
     std::cout << "store i8 %" << exp_label << ", i8* %" << alias << "\n";
+    add_symbol(node->identifier->name, alias, node->identifier->value);
   } else if (std::holds_alternative<bool>(*value)) {
     const auto exp_label = gen_expression(node->expression);
     std::cout << "%" << alias << " = alloca i1\n";
     std::cout << "store i1 %" << exp_label << ", i1* %" << alias << "\n";
+    add_symbol(node->identifier->name, alias, node->identifier->value);
   } else if (std::holds_alternative<std::shared_ptr<Array>>(*value)) {
     const auto exp_label = gen_expression(node->expression);
     const auto array_value = std::get<std::shared_ptr<Array>>(*value);
@@ -150,6 +153,7 @@ void IRGen::gen_declaration(
       std::cout << "%" << alias << "= load [" << std::to_string(count)
                 << " x i32]*, [" << std::to_string(count) << " x i32]** %"
                 << temp_label << "\n";
+      add_symbol(node->identifier->name, alias, node->identifier->value);
     } else if (std::holds_alternative<float>(basic_type)) {
       std::cout << "%" << temp_label << " = alloca ["
                 << std::to_string(count) + " x float]*\n";
@@ -159,6 +163,7 @@ void IRGen::gen_declaration(
       std::cout << "%" << alias << "= load [" << std::to_string(count)
                 << " x float]*, [" << std::to_string(count) << " x float]** %"
                 << temp_label << "\n";
+      add_symbol(node->identifier->name, alias, node->identifier->value);
     } else if (std::holds_alternative<char>(basic_type)) {
       std::cout << "%" << temp_label << " = alloca ["
                 << std::to_string(count) + " x i8]*\n";
@@ -168,6 +173,7 @@ void IRGen::gen_declaration(
       std::cout << "%" << alias << "= load [" << std::to_string(count)
                 << " x i8]*, [" << std::to_string(count) << " x i8]** %"
                 << temp_label << "\n";
+      add_symbol(node->identifier->name, alias, node->identifier->value);
     } else if (std::holds_alternative<bool>(basic_type)) {
       std::cout << "%" << temp_label << " = alloca ["
                 << std::to_string(count) + " x i1]*\n";
@@ -177,6 +183,7 @@ void IRGen::gen_declaration(
       std::cout << "%" << alias << "= load [" << std::to_string(count)
                 << " x i1]*, [" << std::to_string(count) << " x i1]** %"
                 << temp_label << "\n";
+      add_symbol(node->identifier->name, alias, node->identifier->value);
     } else {
       LOG(FATAL) << "Unknown type";
     }

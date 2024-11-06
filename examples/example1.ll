@@ -34,29 +34,25 @@ store i32 %9, i32* %i0
 %11 = icmp slt i32 %10, %6
 br i1 %11, label %for1.body, label %for1.end
 for1.body:
-%12 = load i32, i32* %x0
-%13 = add i32 0, 2
-%14 = icmp sgt i32 %12, %13
-br i1 %14, label %if1.then, label %if1.else
-if1.then:
-%15 = add i8 0, 72
-%16 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str.out.char, i32 0), i8 %15)
-br label %for1.end
-if1.else:
-%17 = load i32, i32* %x0
-%18 = add i32 0, 0
-%19 = icmp slt i32 %17, %18
-br i1 %19, label %if2.then, label %if2.else
-if2.then:
-%20 = add i8 0, 69
-%21 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str.out.char, i32 0), i8 %20)
-br label %if1.end
-if2.else:
-%22 = add i8 0, 76
-%23 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str.out.char, i32 0), i8 %22)
-br label %if1.end
-if1.end:
+%12 = load i32, i32* %a0
+%i1 = alloca i32
+store i32 %12, i32* %i1
+%13 = add i8 0, 32
+%14 = load i32, i32* %i1
+%15 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str.out.char, i32 0), i8 %13)
+%16 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str.out.int, i32 0), i32 %14)
+%17 = load i32, i32* %a0
+%18 = load i32, i32* %b0
+%19 = add i32 %17, %18
+store i32 %19, i32* %a0
 br label %for1.cond
 for1.end:
+%20 = load i32, i32* %a0
+%a1 = alloca i32
+store i32 %20, i32* %a1
+%21 = add i8 0, 10
+%22 = load i32, i32* %a1
+%23 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str.out.char, i32 0), i8 %21)
+%24 = call i32 (i8*, ...) @printf(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @.str.out.int, i32 0), i32 %22)
 ret i32 0
 }
