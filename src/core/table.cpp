@@ -520,7 +520,7 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
   if (const auto array = std::dynamic_pointer_cast<ArrayExpressionNode>(node)) {
     if (array->elements.empty()) {
       if (array->element == nullptr || array->count == nullptr) {
-        LOG(FATAL) << "Empty array";
+        LOG(FATAL) << "Array is not declared properly";
         return nullptr;
       }
       const auto element_type = infer_type(array->element);
@@ -640,14 +640,14 @@ std::shared_ptr<TypeNode> SymbolTable::infer_type(
                   std::dynamic_pointer_cast<BasicTypeNode>(type)) {
             if (basic->type != "i32" && basic->type != "f32" &&
                 basic->type != "char" && basic->type != "bool") {
-              LOG(FATAL) << "Unknown stdin type";
+              LOG(FATAL) << "Stdin type is not a basic type";
             }
           } else {
-            LOG(FATAL) << "Unknown stdin type";
+            LOG(FATAL) << "Stdin type is not a basic type";
           }
           if (const auto value = eval_value(exp);
               std::holds_alternative<std::nullptr_t>(value)) {
-            LOG(FATAL) << "Unknown stdin value";
+            LOG(FATAL) << "Stdin value is null";
           }
           if (auto symbol = get_symbol(id->name); !symbol->mutability) {
             LOG(FATAL) << "Try to assign to immutable symbol";
@@ -753,19 +753,11 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
         return {res};
       }
       if (op == "/") {
-        if (r == 0) {
-          LOG(FATAL) << "Division by zero";
-          return {};
-        }
         const auto res = l / r;
         binary->value = res;
         return {res};
       }
       if (op == "%") {
-        if (r == 0) {
-          LOG(FATAL) << "Division by zero";
-          return {};
-        }
         const auto res = l % r;
         binary->value = res;
         return {res};
@@ -944,10 +936,6 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
         if (const auto l_identifier =
                 std::dynamic_pointer_cast<IdentifierExpressionNode>(
                     binary->left)) {
-          if (r == 0) {
-            LOG(FATAL) << "Division by zero";
-            return {};
-          }
           auto symbol = get_symbol(l_identifier->name);
           l /= r;
           l_identifier->value = l;
@@ -980,10 +968,6 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
         if (const auto l_identifier =
                 std::dynamic_pointer_cast<IdentifierExpressionNode>(
                     binary->left)) {
-          if (r == 0) {
-            LOG(FATAL) << "Division by zero";
-            return {};
-          }
           auto symbol = get_symbol(l_identifier->name);
           l %= r;
           l_identifier->value = l;
@@ -1034,10 +1018,6 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
         return {res};
       }
       if (op == "/") {
-        if (r == 0) {
-          LOG(FATAL) << "Division by zero";
-          return {};
-        }
         const auto res = l / r;
         binary->value = res;
         return {res};
@@ -1203,10 +1183,6 @@ SymbolTable::eval_value(const std::shared_ptr<ExpressionNode> &node) const {
         if (const auto l_identifier =
                 std::dynamic_pointer_cast<IdentifierExpressionNode>(
                     binary->left)) {
-          if (r == static_cast<float>(0)) {
-            LOG(FATAL) << "Division by zero";
-            return {};
-          }
           auto symbol = get_symbol(l_identifier->name);
           l /= r;
           l_identifier->value = l;

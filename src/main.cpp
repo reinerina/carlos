@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
 
   std::cin.rdbuf(file.rdbuf());
 
-  auto lexer = carlos::CarlosLexer(std::cin);
+  auto lexer = carlos::CarlosLexer(std::cin, mode == 0);
   auto parser = carlos::CarlosParser(lexer);
   parser.parse();
 

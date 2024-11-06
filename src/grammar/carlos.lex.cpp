@@ -795,12 +795,15 @@ YY_RULE_SETUP
 #line 32 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Entrypoint" << std::endl;
+  }
   return CarlosParser::make_CA_ENTRY(location);
 }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 37 "carlos.l"
+#line 40 "carlos.l"
 {
   location.next_word(yyleng);
   // Ignore whitespace
@@ -809,7 +812,7 @@ YY_RULE_SETUP
 case 3:
 /* rule 3 can match eol */
 YY_RULE_SETUP
-#line 42 "carlos.l"
+#line 45 "carlos.l"
 {
   location.next_line(yylineno);
   // Ignore newlines
@@ -817,7 +820,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 47 "carlos.l"
+#line 50 "carlos.l"
 {
   location.next_word(yyleng);
   // Ignore comments
@@ -825,7 +828,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 52 "carlos.l"
+#line 55 "carlos.l"
 {
   location.next_word(yyleng);
   BEGIN(IN_COMMENT);
@@ -834,12 +837,12 @@ YY_RULE_SETUP
 
 case 6:
 YY_RULE_SETUP
-#line 58 "carlos.l"
+#line 61 "carlos.l"
 
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 59 "carlos.l"
+#line 62 "carlos.l"
 {
     BEGIN(INITIAL);
   }
@@ -847,7 +850,7 @@ YY_RULE_SETUP
 case 8:
 /* rule 8 can match eol */
 YY_RULE_SETUP
-#line 62 "carlos.l"
+#line 65 "carlos.l"
 {
     // Ignore comments
   }
@@ -855,9 +858,12 @@ YY_RULE_SETUP
 
 case 9:
 YY_RULE_SETUP
-#line 67 "carlos.l"
+#line 70 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: " << yytext << std::endl;
+  }
   switch (yytext[0]) {
     case '+': return CarlosParser::make_CA_PLUS(location);
     case '-': return CarlosParser::make_CA_MINUS(location);
@@ -885,273 +891,375 @@ YY_RULE_SETUP
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 94 "carlos.l"
+#line 100 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Let" << std::endl;
+  }
   return CarlosParser::make_CA_LET(location);
 }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 99 "carlos.l"
+#line 108 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Mut" << std::endl;
+  }
   return CarlosParser::make_CA_MUT(location);
 }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 104 "carlos.l"
+#line 116 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "As" << std::endl;
+  }
   return CarlosParser::make_CA_AS(location);
 }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 109 "carlos.l"
+#line 124 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Bool" << std::endl;
+  }
   return CarlosParser::make_CA_BOOL(location);
 }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 114 "carlos.l"
+#line 132 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "I32" << std::endl;
+  }
   return CarlosParser::make_CA_INT32(location);
 }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 119 "carlos.l"
+#line 140 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "F32" << std::endl;
+  }
   return CarlosParser::make_CA_FLOAT32(location);
 }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 124 "carlos.l"
+#line 148 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Char" << std::endl;
+  }
   return CarlosParser::make_CA_CHAR(location);
 }
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 129 "carlos.l"
+#line 156 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Fn" << std::endl;
+  }
   return CarlosParser::make_CA_FN(location);
 }
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 134 "carlos.l"
+#line 164 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Return" << std::endl;
+  }
   return CarlosParser::make_CA_RETURN(location);
 }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 139 "carlos.l"
+#line 172 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Const" << std::endl;
+  }
   return CarlosParser::make_CA_CONST(location);
 }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 144 "carlos.l"
+#line 180 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "If" << std::endl;
+  }
   return CarlosParser::make_CA_IF(location);
 }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 149 "carlos.l"
+#line 188 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Else" << std::endl;
+  }
   return CarlosParser::make_CA_ELSE(location);
 }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 154 "carlos.l"
+#line 196 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "While" << std::endl;
+  }
   return CarlosParser::make_CA_WHILE(location);
 }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 159 "carlos.l"
+#line 204 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "For" << std::endl;
+  }
   return CarlosParser::make_CA_FOR(location);
 }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 164 "carlos.l"
+#line 212 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Break" << std::endl;
+  }
   return CarlosParser::make_CA_BREAK(location);
 }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 169 "carlos.l"
+#line 220 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Continue" << std::endl;
+  }
   return CarlosParser::make_CA_CONTINUE(location);
 }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 174 "carlos.l"
+#line 228 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "In" << std::endl;
+  }
   return CarlosParser::make_CA_IN(location);
 }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 179 "carlos.l"
+#line 236 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "True" << std::endl;
+  }
   return CarlosParser::make_CA_TRUE(location);
 }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 184 "carlos.l"
+#line 244 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "False" << std::endl;
+  }
   return CarlosParser::make_CA_FALSE(location);
 }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 189 "carlos.l"
+#line 252 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Arrow" << std::endl;
+  }
   return CarlosParser::make_CA_RETURN_TYPE(location);
 }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 194 "carlos.l"
+#line 260 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: >=" << std::endl;
+  }
   return CarlosParser::make_CA_GTE(location);
 }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 199 "carlos.l"
+#line 268 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: <=" << std::endl;
+  }
   return CarlosParser::make_CA_LTE(location);
 }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 204 "carlos.l"
+#line 276 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: ==" << std::endl;
+  }
   return CarlosParser::make_CA_EQ(location);
 }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 209 "carlos.l"
+#line 284 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: !=" << std::endl;
+  }
   return CarlosParser::make_CA_NEQ(location);
 }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 214 "carlos.l"
+#line 292 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: ||" << std::endl;
+  }
   return CarlosParser::make_CA_OR(location);
 }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 219 "carlos.l"
+#line 300 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: &&" << std::endl;
+  }
   return CarlosParser::make_CA_AND(location);
 }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 224 "carlos.l"
+#line 308 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: .." << std::endl;
+  }
   return CarlosParser::make_CA_RANGE(location);
 }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 229 "carlos.l"
+#line 316 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: ..=" << std::endl;
+  }
   return CarlosParser::make_CA_RANGE_INCLUSIVE(location);
 }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 234 "carlos.l"
+#line 324 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: +=" << std::endl;
+  }
   return CarlosParser::make_CA_PLUS_ASSIGN(location);
 }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 239 "carlos.l"
+#line 332 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: -=" << std::endl;
+  }
   return CarlosParser::make_CA_MINUS_ASSIGN(location);
 }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 244 "carlos.l"
+#line 340 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: *=" << std::endl;
+  }
   return CarlosParser::make_CA_MUL_ASSIGN(location);
 }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 249 "carlos.l"
+#line 348 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: /=" << std::endl;
+  }
   return CarlosParser::make_CA_DIV_ASSIGN(location);
 }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 254 "carlos.l"
+#line 356 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: %=" << std::endl;
+  }
   return CarlosParser::make_CA_MOD_ASSIGN(location);
 }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 259 "carlos.l"
+#line 364 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Integer: " << yytext << std::endl;
+  }
   if (yytext[0] == '0') {
     if (yytext[1] == 'x') {
       return CarlosParser::make_CA_INT_CONST(std::strtol(yytext, nullptr, 16), location);
@@ -1164,18 +1272,24 @@ YY_RULE_SETUP
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 271 "carlos.l"
+#line 379 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Float: " << yytext << std::endl;
+  }
   return CarlosParser::make_CA_FLOAT_CONST(std::strtof(yytext, nullptr), location);
 }
 	YY_BREAK
 case 45:
 /* rule 45 can match eol */
 YY_RULE_SETUP
-#line 276 "carlos.l"
+#line 387 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Char: " << yytext << std::endl;
+  }
   if (yytext[1] == '\\') {
     switch (yytext[2]) {
       case 'n': return CarlosParser::make_CA_CHAR_CONST('\n', location);
@@ -1193,28 +1307,31 @@ YY_RULE_SETUP
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 293 "carlos.l"
+#line 407 "carlos.l"
 {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Identifier: " << yytext << std::endl;
+  }
   return CarlosParser::make_CA_IDENTIFIER(yytext, location);
 }
 	YY_BREAK
 case YY_STATE_EOF(IN_COMMENT):
-#line 298 "carlos.l"
+#line 415 "carlos.l"
 {
   std::cerr << "Error: Unterminated comment" << std::endl;
   exit(1);
 }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
-#line 303 "carlos.l"
+#line 420 "carlos.l"
 {
   return CarlosParser::make_YYEOF(location);
 }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 307 "carlos.l"
+#line 424 "carlos.l"
 {
   location.next_word(yyleng);
   std::cerr << "Error at " << location << ": Unexpected character '" << yytext[0] << "'" << std::endl;
@@ -1223,10 +1340,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 313 "carlos.l"
+#line 430 "carlos.l"
 ECHO;
 	YY_BREAK
-#line 1229 "carlos.lex.cpp"
+#line 1346 "carlos.lex.cpp"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2196,5 +2313,5 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 313 "carlos.l"
+#line 430 "carlos.l"
 

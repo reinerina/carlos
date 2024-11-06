@@ -31,6 +31,9 @@ EOL (\n)
 
 {ENTRYPOINT} {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Entrypoint" << std::endl;
+  }
   return CarlosParser::make_CA_ENTRY(location);
 }
 
@@ -66,6 +69,9 @@ EOL (\n)
 
 {OPERATOR} {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: " << yytext << std::endl;
+  }
   switch (yytext[0]) {
     case '+': return CarlosParser::make_CA_PLUS(location);
     case '-': return CarlosParser::make_CA_MINUS(location);
@@ -93,171 +99,273 @@ EOL (\n)
 
 "let" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Let" << std::endl;
+  }
   return CarlosParser::make_CA_LET(location);
 }
 
 "mut" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Mut" << std::endl;
+  }
   return CarlosParser::make_CA_MUT(location);
 }
 
 "as" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "As" << std::endl;
+  }
   return CarlosParser::make_CA_AS(location);
 }
 
 "bool" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Bool" << std::endl;
+  }
   return CarlosParser::make_CA_BOOL(location);
 }
 
 "i32" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "I32" << std::endl;
+  }
   return CarlosParser::make_CA_INT32(location);
 }
 
 "f32" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "F32" << std::endl;
+  }
   return CarlosParser::make_CA_FLOAT32(location);
 }
 
 "char" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Char" << std::endl;
+  }
   return CarlosParser::make_CA_CHAR(location);
 }
 
 "fn" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Fn" << std::endl;
+  }
   return CarlosParser::make_CA_FN(location);
 }
 
 "return" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Return" << std::endl;
+  }
   return CarlosParser::make_CA_RETURN(location);
 }
 
 "const" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Const" << std::endl;
+  }
   return CarlosParser::make_CA_CONST(location);
 }
 
 "if" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "If" << std::endl;
+  }
   return CarlosParser::make_CA_IF(location);
 }
 
 "else" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Else" << std::endl;
+  }
   return CarlosParser::make_CA_ELSE(location);
 }
 
 "while" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "While" << std::endl;
+  }
   return CarlosParser::make_CA_WHILE(location);
 }
 
 "for" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "For" << std::endl;
+  }
   return CarlosParser::make_CA_FOR(location);
 }
 
 "break" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Break" << std::endl;
+  }
   return CarlosParser::make_CA_BREAK(location);
 }
 
 "continue" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Continue" << std::endl;
+  }
   return CarlosParser::make_CA_CONTINUE(location);
 }
 
 "in" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "In" << std::endl;
+  }
   return CarlosParser::make_CA_IN(location);
 }
 
 "true" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "True" << std::endl;
+  }
   return CarlosParser::make_CA_TRUE(location);
 }
 
 "false" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "False" << std::endl;
+  }
   return CarlosParser::make_CA_FALSE(location);
 }
 
 "->" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Arrow" << std::endl;
+  }
   return CarlosParser::make_CA_RETURN_TYPE(location);
 }
 
 ">=" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: >=" << std::endl;
+  }
   return CarlosParser::make_CA_GTE(location);
 }
 
 "<=" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: <=" << std::endl;
+  }
   return CarlosParser::make_CA_LTE(location);
 }
 
 "==" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: ==" << std::endl;
+  }
   return CarlosParser::make_CA_EQ(location);
 }
 
 "!=" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: !=" << std::endl;
+  }
   return CarlosParser::make_CA_NEQ(location);
 }
 
 "||" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: ||" << std::endl;
+  }
   return CarlosParser::make_CA_OR(location);
 }
 
 "&&" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: &&" << std::endl;
+  }
   return CarlosParser::make_CA_AND(location);
 }
 
 ".." {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: .." << std::endl;
+  }
   return CarlosParser::make_CA_RANGE(location);
 }
 
 "..=" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: ..=" << std::endl;
+  }
   return CarlosParser::make_CA_RANGE_INCLUSIVE(location);
 }
 
 "+=" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: +=" << std::endl;
+  }
   return CarlosParser::make_CA_PLUS_ASSIGN(location);
 }
 
 "-=" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: -=" << std::endl;
+  }
   return CarlosParser::make_CA_MINUS_ASSIGN(location);
 }
 
 "*=" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: *=" << std::endl;
+  }
   return CarlosParser::make_CA_MUL_ASSIGN(location);
 }
 
 "/=" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: /=" << std::endl;
+  }
   return CarlosParser::make_CA_DIV_ASSIGN(location);
 }
 
 "%=" {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Operator: %=" << std::endl;
+  }
   return CarlosParser::make_CA_MOD_ASSIGN(location);
 }
 
 {INTEGER} {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Integer: " << yytext << std::endl;
+  }
   if (yytext[0] == '0') {
     if (yytext[1] == 'x') {
       return CarlosParser::make_CA_INT_CONST(std::strtol(yytext, nullptr, 16), location);
@@ -270,11 +378,17 @@ EOL (\n)
 
 {FLOAT} {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Float: " << yytext << std::endl;
+  }
   return CarlosParser::make_CA_FLOAT_CONST(std::strtof(yytext, nullptr), location);
 }
 
 {CHAR} {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Char: " << yytext << std::endl;
+  }
   if (yytext[1] == '\\') {
     switch (yytext[2]) {
       case 'n': return CarlosParser::make_CA_CHAR_CONST('\n', location);
@@ -292,6 +406,9 @@ EOL (\n)
 
 {IDENTIFIER} {
   location.next_word(yyleng);
+  if (display) {
+    std::cout << "Identifier: " << yytext << std::endl;
+  }
   return CarlosParser::make_CA_IDENTIFIER(yytext, location);
 }
 

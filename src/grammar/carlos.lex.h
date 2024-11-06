@@ -20,11 +20,13 @@ namespace carlos {
 class CarlosLexer final : public CarlosFlexLexer {
  public:
   CarlosLexer() = default;
-  explicit CarlosLexer(std::istream& in) : CarlosFlexLexer(&in) {}
+  explicit CarlosLexer(std::istream& in, const bool display)
+      : CarlosFlexLexer(&in), display(display) {}
 
   CarlosParser::symbol_type lex();
 
   Location location{1, 1};
+  bool display{};
 };
 };  // namespace carlos
 
