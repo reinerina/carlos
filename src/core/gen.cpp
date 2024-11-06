@@ -150,7 +150,7 @@ void IRGen::gen_declaration(
       std::cout << "store [" << std::to_string(count) + " x i32]* %"
                 << exp_label << ", [" << std::to_string(count) + " x i32]** %"
                 << temp_label << "\n";
-      std::cout << "%" << alias << "= load [" << std::to_string(count)
+      std::cout << "%" << alias << " = load [" << std::to_string(count)
                 << " x i32]*, [" << std::to_string(count) << " x i32]** %"
                 << temp_label << "\n";
       add_symbol(node->identifier->name, alias, node->identifier->value);
@@ -160,7 +160,7 @@ void IRGen::gen_declaration(
       std::cout << "store [" << std::to_string(count) + " x float]* %"
                 << exp_label << ", [" << std::to_string(count) + " x float]** %"
                 << temp_label << "\n";
-      std::cout << "%" << alias << "= load [" << std::to_string(count)
+      std::cout << "%" << alias << " = load [" << std::to_string(count)
                 << " x float]*, [" << std::to_string(count) << " x float]** %"
                 << temp_label << "\n";
       add_symbol(node->identifier->name, alias, node->identifier->value);
@@ -170,7 +170,7 @@ void IRGen::gen_declaration(
       std::cout << "store [" << std::to_string(count) + " x i8]* %" << exp_label
                 << ", [" << std::to_string(count) + " x i8]** %" << temp_label
                 << "\n";
-      std::cout << "%" << alias << "= load [" << std::to_string(count)
+      std::cout << "%" << alias << " = load [" << std::to_string(count)
                 << " x i8]*, [" << std::to_string(count) << " x i8]** %"
                 << temp_label << "\n";
       add_symbol(node->identifier->name, alias, node->identifier->value);
@@ -180,7 +180,7 @@ void IRGen::gen_declaration(
       std::cout << "store [" << std::to_string(count) + " x i1]* %" << exp_label
                 << ", [" << std::to_string(count) + " x i1]** %" << temp_label
                 << "\n";
-      std::cout << "%" << alias << "= load [" << std::to_string(count)
+      std::cout << "%" << alias << " = load [" << std::to_string(count)
                 << " x i1]*, [" << std::to_string(count) << " x i1]** %"
                 << temp_label << "\n";
       add_symbol(node->identifier->name, alias, node->identifier->value);
@@ -1416,11 +1416,15 @@ int IRGen::gen_expression(const std::shared_ptr<ExpressionNode> &node) {
       const auto index = gen_expression(indices->at(i));
       if (i == indices->size() - 1) {
         const auto temp_label = next_label();
-        std::cout << "%" << temp_label << " = add i32 " << "%" << index_label
-                  << ", %" << index << "\n";
+        if (i == 0) {
+          std::cout << "%" << temp_label << " = add i32 0, %" << index << "\n";
+        } else {
+          std::cout << "%" << temp_label << " = add i32 %" << index_label
+                    << ", %" << index << "\n";
+        }
         index_label = temp_label;
       } else if (i == 0) {
-        const auto dim = dims[i];
+        const auto dim = dims[i + 1];
         const auto dim_label = next_label();
         std::cout << "%" << dim_label << " = mul i32 %" << index << ", " << dim
                   << "\n";
@@ -1429,7 +1433,7 @@ int IRGen::gen_expression(const std::shared_ptr<ExpressionNode> &node) {
                   << "\n";
         index_label = temp_label;
       } else {
-        const auto dim = dims[i];
+        const auto dim = dims[i + 1];
         const auto dim_label = next_label();
         std::cout << "%" << dim_label << " = mul i32 %" << index << ", " << dim
                   << "\n";
